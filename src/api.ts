@@ -4,7 +4,7 @@ const DEFAULT_BASE_URL = "https://api.pagecord.com";
 
 export interface PagecordSettings {
 	apiKey: string;
-	baseUrl?: string; // Override in data.json for development
+	baseUrl?: string;
 }
 
 interface PostParams {
@@ -26,7 +26,6 @@ interface PostResponse {
 
 interface AttachmentResponse {
 	attachable_sgid: string;
-	url: string;
 }
 
 export class PagecordAPI {
@@ -41,49 +40,41 @@ export class PagecordAPI {
 	}
 
 	async createPost(params: PostParams): Promise<PostResponse> {
-		return this.request("POST", "/posts", params);
+		return this.request<PostResponse>("POST", "/posts", {
+			body: JSON.stringify(params),
+			contentType: "application/json",
+		});
 	}
 
 	async updatePost(token: string, params: PostParams): Promise<PostResponse> {
-		return this.request("PATCH", `/posts/${token}`, params);
+		return this.request<PostResponse>("PATCH", `/posts/${token}`, {
+			body: JSON.stringify(params),
+			contentType: "application/json",
+		});
 	}
 
 	async uploadAttachment(filename: string, contentType: string, data: ArrayBuffer): Promise<AttachmentResponse> {
 		const { body, boundary } = buildMultipartBody(filename, contentType, data);
 
-		const response = await requestUrl({
-			url: `${this.baseUrl}/attachments`,
-			method: "POST",
-			headers: {
-				"Authorization": this.authHeader,
-				"Content-Type": `multipart/form-data; boundary=${boundary}`,
-			},
+		return this.request<AttachmentResponse>("POST", "/attachments", {
 			body,
-			throw: false,
+			contentType: `multipart/form-data; boundary=${boundary}`,
 		});
-
-		if (response.status >= 400) {
-			console.error("Pagecord upload error:", response.status, response.text);
-			throw { status: response.status, body: response.json };
-		}
-
-		return response.json;
 	}
 
-	private async request(method: string, path: string, body: unknown): Promise<any> {
+	private async request<T>(method: string, path: string, opts: { body: unknown; contentType: string }): Promise<T> {
 		const response = await requestUrl({
 			url: `${this.baseUrl}${path}`,
 			method,
 			headers: {
 				"Authorization": this.authHeader,
-				"Content-Type": "application/json",
+				"Content-Type": opts.contentType,
 			},
-			body: JSON.stringify(body),
+			body: opts.body as string,
 			throw: false,
 		});
 
 		if (response.status >= 400) {
-			console.error("Pagecord API error:", response.status, response.text);
 			throw { status: response.status, body: response.json };
 		}
 
@@ -92,7 +83,6 @@ export class PagecordAPI {
 }
 
 export function handleApiError(error: any): void {
-	console.error("Pagecord API error:", error, error?.response, error?.response?.text);
 	const status = error?.status;
 
 	if (status === 401) {

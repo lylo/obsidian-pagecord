@@ -28,8 +28,7 @@ export async function publishPost(app: App, settings: PagecordSettings, status: 
 	}
 
 	const api = new PagecordAPI(settings);
-	const cache = app.metadataCache.getFileCache(file);
-	const frontmatter = cache?.frontmatter;
+	const frontmatter = app.metadataCache.getFileCache(file)?.frontmatter;
 
 	const title = frontmatter?.title || file.basename;
 	const slug = frontmatter?.slug;
@@ -43,11 +42,9 @@ export async function publishPost(app: App, settings: PagecordSettings, status: 
 			: String(frontmatter.tags);
 	}
 
-	// Read content and strip frontmatter
 	let content = await app.vault.read(file);
 	content = content.replace(/^---\n[\s\S]*?\n---\n/, "");
 
-	// Find and upload images
 	try {
 		content = await processImages(app, api, file, content);
 	} catch (error: any) {
@@ -93,7 +90,6 @@ export async function publishPost(app: App, settings: PagecordSettings, status: 
 async function processImages(app: App, api: PagecordAPI, file: TFile, content: string): Promise<string> {
 	const images: { match: string; filename: string; path: string }[] = [];
 
-	// Wiki-style: ![[image.png]]
 	for (const m of content.matchAll(WIKILINK_IMAGE)) {
 		const filename = m[1];
 		if (IMAGE_EXTENSIONS.test(filename)) {
@@ -101,7 +97,6 @@ async function processImages(app: App, api: PagecordAPI, file: TFile, content: s
 		}
 	}
 
-	// Markdown-style: ![alt](path)
 	for (const m of content.matchAll(MARKDOWN_IMAGE)) {
 		const path = decodeURIComponent(m[2]);
 		if (IMAGE_EXTENSIONS.test(path)) {

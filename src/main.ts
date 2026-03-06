@@ -36,7 +36,7 @@ export default class PagecordPlugin extends Plugin {
 	}
 
 	async loadSettings() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+		this.settings = { ...DEFAULT_SETTINGS, ...await this.loadData() };
 	}
 
 	async saveSettings() {
@@ -69,6 +69,5 @@ class PagecordSettingTab extends PluginSettingTab {
 						await this.plugin.saveSettings();
 					})
 			);
-
 	}
 }
