@@ -1,0 +1,14 @@
+{
+	"name": "obsidian-pagecord",
+	"version": "1.0.0",
+	"private": true,
+	"scripts": {
+		"build": "node esbuild.config.mjs"
+	},
+	"devDependencies": {
+		"@types/node": "^22.0.0",
+		"esbuild": "^0.24.0",
+		"obsidian": "latest",
+		"typescript": "^5.6.0"
+	}
+}
