@@ -41,25 +41,31 @@ export class PagecordAPI {
 	}
 
 	async createPost(params: PostParams): Promise<PostResponse> {
-		return this.request("POST", "/api/posts", params);
+		return this.request("POST", "/posts", params);
 	}
 
 	async updatePost(token: string, params: PostParams): Promise<PostResponse> {
-		return this.request("PATCH", `/api/posts/${token}`, params);
+		return this.request("PATCH", `/posts/${token}`, params);
 	}
 
 	async uploadAttachment(filename: string, contentType: string, data: ArrayBuffer): Promise<AttachmentResponse> {
 		const { body, boundary } = buildMultipartBody(filename, contentType, data);
 
 		const response = await requestUrl({
-			url: `${this.baseUrl}/api/attachments`,
+			url: `${this.baseUrl}/attachments`,
 			method: "POST",
 			headers: {
 				"Authorization": this.authHeader,
 				"Content-Type": `multipart/form-data; boundary=${boundary}`,
 			},
 			body,
+			throw: false,
 		});
+
+		if (response.status >= 400) {
+			console.error("Pagecord upload error:", response.status, response.text);
+			throw { status: response.status, body: response.json };
+		}
 
 		return response.json;
 	}
@@ -73,13 +79,20 @@ export class PagecordAPI {
 				"Content-Type": "application/json",
 			},
 			body: JSON.stringify(body),
+			throw: false,
 		});
+
+		if (response.status >= 400) {
+			console.error("Pagecord API error:", response.status, response.text);
+			throw { status: response.status, body: response.json };
+		}
 
 		return response.json;
 	}
 }
 
 export function handleApiError(error: any): void {
+	console.error("Pagecord API error:", error, error?.response, error?.response?.text);
 	const status = error?.status;
 
 	if (status === 401) {
@@ -89,8 +102,8 @@ export function handleApiError(error: any): void {
 	} else if (status === 404) {
 		new Notice("Post not found on Pagecord.");
 	} else if (status === 422) {
-		const errors = error?.response?.json?.errors ?? error?.response?.json?.error;
-		new Notice(`Pagecord: ${errors || "Validation error"}`);
+		const message = error?.body?.errors?.join(", ") ?? error?.body?.error;
+		new Notice(`Pagecord: ${message || "Validation error"}`);
 	} else if (status === 429) {
 		new Notice("Rate limited. Wait a moment and try again.");
 	} else {

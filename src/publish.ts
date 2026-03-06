@@ -1,6 +1,8 @@
 import { App, TFile, Notice } from "obsidian";
 import { PagecordAPI, PagecordSettings, handleApiError } from "./api";
 
+class UploadError extends Error {}
+
 const IMAGE_EXTENSIONS = /\.(jpe?g|png|gif|webp)$/i;
 const WIKILINK_IMAGE = /!\[\[([^\]]+?)\]\]/g;
 const MARKDOWN_IMAGE = /!\[([^\]]*)\]\(([^)]+?)\)/g;
@@ -46,7 +48,16 @@ export async function publishPost(app: App, settings: PagecordSettings, status: 
 	content = content.replace(/^---\n[\s\S]*?\n---\n/, "");
 
 	// Find and upload images
-	content = await processImages(app, api, file, content);
+	try {
+		content = await processImages(app, api, file, content);
+	} catch (error: any) {
+		if (error instanceof UploadError) {
+			new Notice(error.message);
+		} else {
+			handleApiError(error);
+		}
+		return;
+	}
 
 	const params = {
 		title,
@@ -102,24 +113,18 @@ async function processImages(app: App, api: PagecordAPI, file: TFile, content: s
 	for (const img of images) {
 		const linked = app.metadataCache.getFirstLinkpathDest(img.path, file.path);
 		if (!linked) {
-			new Notice(`Image not found: ${img.filename}`);
-			continue;
+			throw new UploadError(`Image not found: ${img.filename}`);
 		}
 
-		try {
-			const data = await app.vault.readBinary(linked);
-			const ext = linked.extension.toLowerCase();
-			const contentType = CONTENT_TYPES[ext] || "application/octet-stream";
+		const data = await app.vault.readBinary(linked);
+		const ext = linked.extension.toLowerCase();
+		const contentType = CONTENT_TYPES[ext] || "application/octet-stream";
 
-			const attachment = await api.uploadAttachment(img.filename, contentType, data);
-			content = content.replace(
-				img.match,
-				`<action-text-attachment sgid="${attachment.attachable_sgid}"></action-text-attachment>`
-			);
-		} catch (error: any) {
-			new Notice(`Failed to upload ${img.filename}`);
-			handleApiError(error);
-		}
+		const attachment = await api.uploadAttachment(img.filename, contentType, data);
+		content = content.replace(
+			img.match,
+			`<action-text-attachment sgid="${attachment.attachable_sgid}"></action-text-attachment>`
+		);
 	}
 
 	return content;
