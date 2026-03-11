@@ -11,10 +11,13 @@ interface PostParams {
 	title?: string;
 	content: string;
 	slug?: string;
-	tags_string?: string;
+	tags?: string;
 	canonical_url?: string;
 	status: "published" | "draft";
-	content_format: "markdown";
+	content_format: "markdown" | "html";
+	published_at?: string;
+	hidden?: boolean;
+	locale?: string;
 }
 
 interface PostResponse {

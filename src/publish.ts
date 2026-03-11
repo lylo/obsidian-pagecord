@@ -34,6 +34,11 @@ export async function publishPost(app: App, settings: PagecordSettings, status: 
 	const slug = frontmatter?.slug;
 	const canonicalUrl = frontmatter?.canonical_url;
 	const pagecordToken = frontmatter?.pagecord_token;
+	const publishedAt = frontmatter?.published_at;
+	const hidden = frontmatter?.hidden;
+	const locale = frontmatter?.locale;
+	const contentFormat = frontmatter?.content_format === "html" ? "html" as const : "markdown" as const;
+	const fmStatus = frontmatter?.status;
 
 	let tags: string | undefined;
 	if (frontmatter?.tags) {
@@ -59,11 +64,14 @@ export async function publishPost(app: App, settings: PagecordSettings, status: 
 	const params = {
 		title,
 		content,
-		status,
-		content_format: "markdown" as const,
+		status: fmStatus === "published" || fmStatus === "draft" ? fmStatus : status,
+		content_format: contentFormat,
 		...(slug && { slug }),
-		...(tags && { tags_string: tags }),
+		...(tags && { tags }),
 		...(canonicalUrl && { canonical_url: canonicalUrl }),
+		...(publishedAt && { published_at: String(publishedAt) }),
+		...(hidden != null && { hidden: Boolean(hidden) }),
+		...(locale && { locale }),
 	};
 
 	try {
