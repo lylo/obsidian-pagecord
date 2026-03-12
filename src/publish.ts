@@ -30,7 +30,7 @@ export async function publishPost(app: App, settings: PagecordSettings, status: 
 	const api = new PagecordAPI(settings);
 	const frontmatter = app.metadataCache.getFileCache(file)?.frontmatter;
 
-	const title = frontmatter?.title || file.basename;
+	const title = frontmatter?.title === false ? undefined : (frontmatter?.title || file.basename);
 	const slug = frontmatter?.slug;
 	const canonicalUrl = frontmatter?.canonical_url;
 	const pagecordToken = frontmatter?.pagecord_token;
