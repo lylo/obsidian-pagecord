@@ -33,7 +33,7 @@ Auth is `Authorization: Bearer <api_key>`. All requests go through a single `req
 
 ## Key Patterns
 
-- **Frontmatter** — read via `app.metadataCache.getFileCache(file)?.frontmatter`. After first publish, `pagecord_token` is written back via `app.fileManager.processFrontMatter()` to link the note to the remote post.
+- **Frontmatter** — read via `app.metadataCache.getFileCache(file)?.frontmatter`. Supports: `title` (set to `false` for no title), `slug`, `tags`, `status`, `published_at`, `canonical_url`, `content_format`, `hidden`, `locale`. After first publish, `pagecord_token` is written back via `app.fileManager.processFrontMatter()` to link the note to the remote post.
 - **Images** — both `![[file.png]]` and `![alt](file.png)` syntaxes are parsed. Each image is uploaded to `/attachments`, then the reference is replaced with `<action-text-attachment sgid="...">` in the markdown content.
 - **Error handling** — `requestUrl` is called with `throw: false`. Status codes are checked manually so we can read the response body. API errors are surfaced via Obsidian `Notice`. If any image upload fails, the entire publish is aborted.
 - **Multipart uploads** — built manually (Obsidian's `requestUrl` doesn't support `FormData`). See `buildMultipartBody()` in `api.ts`.
