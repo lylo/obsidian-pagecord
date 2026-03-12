@@ -104,7 +104,7 @@ export function handleApiError(error: any): void {
 	}
 }
 
-function buildMultipartBody(filename: string, contentType: string, data: ArrayBuffer) {
+export function buildMultipartBody(filename: string, contentType: string, data: ArrayBuffer) {
 	const boundary = "----PagecordUpload" + Date.now().toString(36);
 	const encoder = new TextEncoder();
 
