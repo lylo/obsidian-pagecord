@@ -42,7 +42,6 @@ tags: [personal, update]
 status: published
 published_at: 2025-01-15T10:00:00Z
 canonical_url: https://example.com/original
-content_format: markdown
 hidden: false
 locale: en
 ---
@@ -56,18 +55,24 @@ locale: en
 | `status` | `published` or `draft` (overrides the command used) |
 | `published_at` | ISO 8601 timestamp |
 | `canonical_url` | Canonical URL for the post |
-| `content_format` | `markdown` (default) or `html` |
 | `hidden` | `true` to hide from the feed |
 | `locale` | Post language code |
 
-All fields are optional. After publishing, a `pagecord_token` field is added to frontmatter automatically. This links the note to the Pagecord post so future publishes update it instead of creating a duplicate.
+All fields are optional.
+
+After publishing, the plugin adds metadata to your frontmatter automatically:
+
+- `pagecord_token` — links the note to the Pagecord post so future publishes update it instead of creating a duplicate
+- `pagecord_attachments` — caches uploaded image hashes so unchanged images aren't re-uploaded
+
+These fields are managed by the plugin. Deleting `pagecord_token` will cause the next publish to create a new post.
 
 ## Images
 
 Both Obsidian image syntaxes are supported:
 
 - `![[photo.jpg]]` (wiki-style)
-- `![alt text](photo.jpg)` (markdown-style)
+- `![](photo.jpg)` (markdown-style)
 
 Images are uploaded to Pagecord and embedded in the post automatically. Supported formats: JPEG, PNG, GIF, WebP.
 
