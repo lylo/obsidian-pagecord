@@ -4,7 +4,7 @@
 	"version": "1.0.0",
 	"minAppVersion": "1.0.0",
 	"description": "Publish notes to your Pagecord blog.",
-	"author": "Pagecord",
+	"author": "Olly Headey",
 	"authorUrl": "https://pagecord.com",
 	"isDesktopOnly": false
 }
