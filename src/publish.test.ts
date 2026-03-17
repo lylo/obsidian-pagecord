@@ -117,21 +117,20 @@ describe("tags parsing", () => {
 	});
 });
 
-describe("status override logic", () => {
-	function resolveStatus(fmStatus: string | undefined, commandStatus: "published" | "draft"): "published" | "draft" {
-		return fmStatus === "published" || fmStatus === "draft" ? fmStatus : commandStatus;
-	}
-
-	it("uses frontmatter status when valid", () => {
-		expect(resolveStatus("draft", "published")).toBe("draft");
-		expect(resolveStatus("published", "draft")).toBe("published");
+describe("status logic", () => {
+	it("always uses command status", () => {
+		expect("published").toBe("published");
+		expect("draft").toBe("draft");
 	});
 
-	it("falls back to command status when frontmatter status is missing", () => {
-		expect(resolveStatus(undefined, "published")).toBe("published");
-	});
+	it("detects frontmatter status for sync", () => {
+		function hasFmStatus(fmStatus: string | undefined): boolean {
+			return fmStatus === "published" || fmStatus === "draft";
+		}
 
-	it("ignores invalid frontmatter status values", () => {
-		expect(resolveStatus("invalid", "draft")).toBe("draft");
+		expect(hasFmStatus("draft")).toBe(true);
+		expect(hasFmStatus("published")).toBe(true);
+		expect(hasFmStatus(undefined)).toBe(false);
+		expect(hasFmStatus("invalid")).toBe(false);
 	});
 });

@@ -48,7 +48,6 @@ export async function publishPost(app: App, settings: PagecordSettings, status: 
 	const hidden = frontmatter?.hidden;
 	const locale = frontmatter?.locale;
 	const contentFormat = frontmatter?.content_format === "html" ? "html" as const : "markdown" as const;
-	const fmStatus = frontmatter?.status;
 	const cachedAttachments: AttachmentCache = frontmatter?.pagecord_attachments || {};
 
 	let tags: string | undefined;
@@ -78,7 +77,7 @@ export async function publishPost(app: App, settings: PagecordSettings, status: 
 	const params = {
 		title,
 		content,
-		status: fmStatus === "published" || fmStatus === "draft" ? fmStatus : status,
+		status,
 		content_format: contentFormat,
 		...(slug && { slug }),
 		...(tags && { tags }),
@@ -99,6 +98,9 @@ export async function publishPost(app: App, settings: PagecordSettings, status: 
 			});
 			new Notice(`Published to Pagecord (${status}).`);
 		}
+		await app.fileManager.processFrontMatter(file, (fm) => {
+			fm.status = status;
+		});
 		if (Object.keys(updatedAttachments).length > 0) {
 			await app.fileManager.processFrontMatter(file, (fm) => {
 				fm.pagecord_attachments = updatedAttachments;
