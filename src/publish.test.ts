@@ -81,7 +81,7 @@ describe("hashArrayBuffer", () => {
 
 describe("frontmatter title logic", () => {
 	// Testing the logic: title === false → "", title present → use it, else → basename
-	function resolveTitle(fmTitle: any, basename: string): string | undefined {
+	function resolveTitle(fmTitle: string | false | undefined, basename: string): string | undefined {
 		return fmTitle === false ? "" : (fmTitle || basename);
 	}
 
@@ -99,7 +99,7 @@ describe("frontmatter title logic", () => {
 });
 
 describe("tags parsing", () => {
-	function parseTags(fmTags: any): string | undefined {
+	function parseTags(fmTags: string[] | string | undefined): string | undefined {
 		if (!fmTags) return undefined;
 		return Array.isArray(fmTags) ? fmTags.join(", ") : String(fmTags);
 	}
@@ -118,7 +118,7 @@ describe("tags parsing", () => {
 });
 
 describe("status override logic", () => {
-	function resolveStatus(fmStatus: any, commandStatus: "published" | "draft"): "published" | "draft" {
+	function resolveStatus(fmStatus: string | undefined, commandStatus: "published" | "draft"): "published" | "draft" {
 		return fmStatus === "published" || fmStatus === "draft" ? fmStatus : commandStatus;
 	}
 

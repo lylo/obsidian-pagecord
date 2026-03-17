@@ -14,20 +14,20 @@ export default class PagecordPlugin extends Plugin {
 
 		this.addCommand({
 			id: "publish",
-			name: "Publish to Pagecord",
+			name: "Publish",
 			checkCallback: (checking) => {
 				if (!this.app.workspace.getActiveFile()) return false;
-				if (!checking) publishPost(this.app, this.settings, "published");
+				if (!checking) void publishPost(this.app, this.settings, "published");
 				return true;
 			},
 		});
 
 		this.addCommand({
 			id: "publish-draft",
-			name: "Publish as draft to Pagecord",
+			name: "Publish as draft",
 			checkCallback: (checking) => {
 				if (!this.app.workspace.getActiveFile()) return false;
-				if (!checking) publishPost(this.app, this.settings, "draft");
+				if (!checking) void publishPost(this.app, this.settings, "draft");
 				return true;
 			},
 		});
@@ -58,7 +58,7 @@ class PagecordSettingTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setName("API key")
-			.setDesc("Your Pagecord blog API key.")
+			.setDesc("Your blog API key.")
 			.addText((text) =>
 				text
 					.setPlaceholder("Enter your API key")

@@ -1,5 +1,5 @@
 import { App, TFile, Notice } from "obsidian";
-import { PagecordAPI, PagecordSettings, handleApiError } from "./api";
+import { PagecordAPI, PagecordSettings, ApiError, handleApiError } from "./api";
 
 class UploadError extends Error {}
 
@@ -33,7 +33,7 @@ export async function publishPost(app: App, settings: PagecordSettings, status: 
 	}
 
 	if (!settings.apiKey) {
-		new Notice("Configure your Pagecord API key in settings.");
+		new Notice("Configure your API key in settings.");
 		return;
 	}
 
@@ -66,7 +66,7 @@ export async function publishPost(app: App, settings: PagecordSettings, status: 
 		const result = await processImages(app, api, file, content, cachedAttachments);
 		content = result.content;
 		updatedAttachments = result.attachments;
-	} catch (error: any) {
+	} catch (error: unknown) {
 		if (error instanceof UploadError) {
 			new Notice(error.message);
 		} else {
@@ -104,8 +104,8 @@ export async function publishPost(app: App, settings: PagecordSettings, status: 
 				fm.pagecord_attachments = updatedAttachments;
 			});
 		}
-	} catch (error: any) {
-		if (error?.status === 404 && pagecordToken) {
+	} catch (error: unknown) {
+		if (error instanceof ApiError && error.status === 404 && pagecordToken) {
 			await app.fileManager.processFrontMatter(file, (fm) => {
 				delete fm.pagecord_token;
 			});

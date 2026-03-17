@@ -2,6 +2,13 @@ import { Notice, requestUrl } from "obsidian";
 
 const DEFAULT_BASE_URL = "https://api.pagecord.com";
 
+export class ApiError extends Error {
+	constructor(public status: number, public body: Record<string, unknown>) {
+		super(`API error ${status}`);
+		this.name = "ApiError";
+	}
+}
+
 export interface PagecordSettings {
 	apiKey: string;
 	baseUrl?: string;
@@ -78,29 +85,35 @@ export class PagecordAPI {
 		});
 
 		if (response.status >= 400) {
-			throw { status: response.status, body: response.json };
+			throw new ApiError(response.status, response.json);
 		}
 
 		return response.json;
 	}
 }
 
-export function handleApiError(error: any): void {
-	const status = error?.status;
+export function handleApiError(error: unknown): void {
+	if (!(error instanceof ApiError)) {
+		new Notice("Could not connect. Check your blog URL.");
+		return;
+	}
+
+	const { status, body } = error;
 
 	if (status === 401) {
-		new Notice("Invalid API key. Check your Pagecord settings.");
+		new Notice("Invalid API key. Check your settings.");
 	} else if (status === 403) {
-		new Notice("API access requires a premium Pagecord subscription.");
+		new Notice("API access requires a premium subscription.");
 	} else if (status === 404) {
-		new Notice("Post not found on Pagecord.");
+		new Notice("Post not found.");
 	} else if (status === 422) {
-		const message = error?.body?.errors?.join(", ") ?? error?.body?.error;
-		new Notice(`Pagecord: ${message || "Validation error"}`);
+		const errors = body?.errors;
+		const message = Array.isArray(errors) ? errors.join(", ") : String(body?.error ?? "");
+		new Notice(message || "Validation error");
 	} else if (status === 429) {
 		new Notice("Rate limited. Wait a moment and try again.");
 	} else {
-		new Notice("Could not connect to Pagecord. Check your blog URL.");
+		new Notice("Could not connect. Check your blog URL.");
 	}
 }
 

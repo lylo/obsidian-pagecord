@@ -6,7 +6,7 @@ describe("buildMultipartBody", () => {
 		const data = new TextEncoder().encode("fake image data").buffer;
 		const { body, boundary } = buildMultipartBody("photo.jpg", "image/jpeg", data);
 
-		const text = new TextDecoder().decode(new Uint8Array(body as ArrayBuffer));
+		const text = new TextDecoder().decode(new Uint8Array(body));
 		expect(text).toContain(`--${boundary}`);
 		expect(text).toContain('Content-Disposition: form-data; name="file"; filename="photo.jpg"');
 		expect(text).toContain("Content-Type: image/jpeg");
@@ -18,7 +18,7 @@ describe("buildMultipartBody", () => {
 		const data = new TextEncoder().encode("data").buffer;
 		const { body } = buildMultipartBody("my photo.png", "image/png", data);
 
-		const text = new TextDecoder().decode(new Uint8Array(body as ArrayBuffer));
+		const text = new TextDecoder().decode(new Uint8Array(body));
 		expect(text).toContain('filename="my photo.png"');
 	});
 
