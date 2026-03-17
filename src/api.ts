@@ -108,7 +108,10 @@ export function handleApiError(error: unknown): void {
 		new Notice("Post not found.");
 	} else if (status === 422) {
 		const errors = body?.errors;
-		const message = Array.isArray(errors) ? errors.join(", ") : String(body?.error ?? "");
+		const errorVal = body?.error;
+		const message = Array.isArray(errors)
+			? errors.join(", ")
+			: typeof errorVal === "string" ? errorVal : "";
 		new Notice(message || "Validation error");
 	} else if (status === 429) {
 		new Notice("Rate limited. Wait a moment and try again.");
