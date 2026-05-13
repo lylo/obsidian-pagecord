@@ -19,6 +19,19 @@ interface AttachmentCache {
 	[filename: string]: { hash: string; sgid: string };
 }
 
+interface PagecordFrontmatter {
+	title?: string | false;
+	slug?: string;
+	canonical_url?: string;
+	pagecord_token?: string;
+	published_at?: string | number;
+	hidden?: boolean;
+	locale?: string;
+	content_format?: string;
+	tags?: string | string[];
+	pagecord_attachments?: AttachmentCache;
+}
+
 export async function hashArrayBuffer(data: ArrayBuffer): Promise<string> {
 	const hashBuffer = await crypto.subtle.digest("SHA-256", data);
 	const hashArray = Array.from(new Uint8Array(hashBuffer));
@@ -38,20 +51,20 @@ export async function publishPost(app: App, settings: PagecordSettings, status: 
 	}
 
 	const api = new PagecordAPI(settings);
-	const frontmatter = app.metadataCache.getFileCache(file)?.frontmatter;
+	const frontmatter = (app.metadataCache.getFileCache(file)?.frontmatter ?? {}) as PagecordFrontmatter;
 
-	const title = frontmatter?.title === false ? "" : (frontmatter?.title || file.basename);
-	const slug = frontmatter?.slug;
-	const canonicalUrl = frontmatter?.canonical_url;
-	const pagecordToken = frontmatter?.pagecord_token;
-	const publishedAt = frontmatter?.published_at;
-	const hidden = frontmatter?.hidden;
-	const locale = frontmatter?.locale;
-	const contentFormat = frontmatter?.content_format === "html" ? "html" as const : "markdown" as const;
-	const cachedAttachments: AttachmentCache = frontmatter?.pagecord_attachments || {};
+	const title = frontmatter.title === false ? "" : (frontmatter.title || file.basename);
+	const slug = frontmatter.slug;
+	const canonicalUrl = frontmatter.canonical_url;
+	const pagecordToken = frontmatter.pagecord_token;
+	const publishedAt = frontmatter.published_at;
+	const hidden = frontmatter.hidden;
+	const locale = frontmatter.locale;
+	const contentFormat = frontmatter.content_format === "html" ? "html" as const : "markdown" as const;
+	const cachedAttachments: AttachmentCache = frontmatter.pagecord_attachments ?? {};
 
 	let tags: string | undefined;
-	if (frontmatter?.tags) {
+	if (frontmatter.tags) {
 		tags = Array.isArray(frontmatter.tags)
 			? frontmatter.tags.join(", ")
 			: String(frontmatter.tags);
@@ -93,22 +106,22 @@ export async function publishPost(app: App, settings: PagecordSettings, status: 
 			new Notice(`Updated on Pagecord (${status}).`);
 		} else {
 			const post = await api.createPost(params);
-			await app.fileManager.processFrontMatter(file, (fm) => {
+			await app.fileManager.processFrontMatter(file, (fm: Record<string, unknown>) => {
 				fm.pagecord_token = post.token;
 			});
 			new Notice(`Published to Pagecord (${status}).`);
 		}
-		await app.fileManager.processFrontMatter(file, (fm) => {
+		await app.fileManager.processFrontMatter(file, (fm: Record<string, unknown>) => {
 			fm.status = status;
 		});
 		if (Object.keys(updatedAttachments).length > 0) {
-			await app.fileManager.processFrontMatter(file, (fm) => {
+			await app.fileManager.processFrontMatter(file, (fm: Record<string, unknown>) => {
 				fm.pagecord_attachments = updatedAttachments;
 			});
 		}
 	} catch (error: unknown) {
 		if (error instanceof ApiError && error.status === 404 && pagecordToken) {
-			await app.fileManager.processFrontMatter(file, (fm) => {
+			await app.fileManager.processFrontMatter(file, (fm: Record<string, unknown>) => {
 				delete fm.pagecord_token;
 			});
 		}

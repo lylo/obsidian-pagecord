@@ -36,7 +36,8 @@ export default class PagecordPlugin extends Plugin {
 	}
 
 	async loadSettings() {
-		this.settings = { ...DEFAULT_SETTINGS, ...await this.loadData() };
+		const data = await this.loadData() as Partial<PagecordSettings> | null;
+		this.settings = { ...DEFAULT_SETTINGS, ...(data ?? {}) };
 	}
 
 	async saveSettings() {

@@ -85,10 +85,10 @@ export class PagecordAPI {
 		});
 
 		if (response.status >= 400) {
-			throw new ApiError(response.status, response.json);
+			throw new ApiError(response.status, (response.json ?? {}) as Record<string, unknown>);
 		}
 
-		return response.json;
+		return response.json as T;
 	}
 }
 
