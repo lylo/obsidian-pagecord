@@ -79,7 +79,7 @@ Images are uploaded to Pagecord and embedded in the post automatically. Supporte
 ## Building from Source
 
 ```
-git clone https://github.com/pagecord/obsidian-pagecord.git
+git clone https://github.com/lylo/obsidian-pagecord.git
 cd obsidian-pagecord
 npm install
 npm run build
