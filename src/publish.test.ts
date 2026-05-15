@@ -80,9 +80,8 @@ describe("hashArrayBuffer", () => {
 });
 
 describe("frontmatter title logic", () => {
-	// Testing the logic: title === false → "", title present → use it, else → basename
-	function resolveTitle(fmTitle: string | false | undefined, basename: string): string | undefined {
-		return fmTitle === false ? "" : (fmTitle || basename);
+	function resolveTitle(fmTitle: unknown, basename: string): string {
+		return fmTitle === undefined ? basename : String(fmTitle ?? "");
 	}
 
 	it("uses frontmatter title when present", () => {
@@ -93,8 +92,16 @@ describe("frontmatter title logic", () => {
 		expect(resolveTitle(undefined, "filename")).toBe("filename");
 	});
 
-	it("sends empty string when title is false", () => {
-		expect(resolveTitle(false, "filename")).toBe("");
+	it("sends empty string when title is an empty string", () => {
+		expect(resolveTitle("", "filename")).toBe("");
+	});
+
+	it("sends empty string when title is null (bare YAML key)", () => {
+		expect(resolveTitle(null, "filename")).toBe("");
+	});
+
+	it("uses the literal string \"false\" when title is false", () => {
+		expect(resolveTitle(false, "filename")).toBe("false");
 	});
 });
 

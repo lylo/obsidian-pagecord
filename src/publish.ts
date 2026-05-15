@@ -20,7 +20,7 @@ interface AttachmentCache {
 }
 
 interface PagecordFrontmatter {
-	title?: string | false;
+	title?: unknown;
 	slug?: string;
 	canonical_url?: string;
 	pagecord_token?: string;
@@ -53,7 +53,7 @@ export async function publishPost(app: App, settings: PagecordSettings, status: 
 	const api = new PagecordAPI(settings);
 	const frontmatter = (app.metadataCache.getFileCache(file)?.frontmatter ?? {}) as PagecordFrontmatter;
 
-	const title = frontmatter.title === false ? "" : (frontmatter.title || file.basename);
+	const title = frontmatter.title === undefined ? file.basename : String(frontmatter.title ?? "");
 	const slug = frontmatter.slug;
 	const canonicalUrl = frontmatter.canonical_url;
 	const pagecordToken = frontmatter.pagecord_token;
