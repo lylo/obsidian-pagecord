@@ -1,12 +1,10 @@
-# frozen_string_literal: true
-
 {
-  "id": 'pagecord',
-  "name": 'Pagecord',
-  "version": '1.0.3',
-  "minAppVersion": '1.4.4',
-  "description": 'Publish notes to your Pagecord blog.',
-  "author": 'Pagecord',
-  "authorUrl": 'https://pagecord.com',
-  "isDesktopOnly": false
+	"id": "pagecord",
+	"name": "Pagecord",
+	"version": "1.0.3",
+	"minAppVersion": "1.4.4",
+	"description": "Publish notes to your Pagecord blog.",
+	"author": "Pagecord",
+	"authorUrl": "https://pagecord.com",
+	"isDesktopOnly": false
 }
