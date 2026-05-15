@@ -38,6 +38,13 @@ export async function hashArrayBuffer(data: ArrayBuffer): Promise<string> {
 	return hashArray.map(b => b.toString(16).padStart(2, "0")).join("").slice(0, 16);
 }
 
+export function resolveTitle(frontmatterTitle: unknown, basename: string): string {
+	if (frontmatterTitle === undefined) return basename;
+	if (frontmatterTitle === null) return "";
+	if (typeof frontmatterTitle === "string") return frontmatterTitle;
+	return JSON.stringify(frontmatterTitle) ?? "";
+}
+
 export async function publishPost(app: App, settings: PagecordSettings, status: "published" | "draft"): Promise<void> {
 	const file = app.workspace.getActiveFile();
 	if (!file) {
@@ -53,7 +60,7 @@ export async function publishPost(app: App, settings: PagecordSettings, status: 
 	const api = new PagecordAPI(settings);
 	const frontmatter = (app.metadataCache.getFileCache(file)?.frontmatter ?? {}) as PagecordFrontmatter;
 
-	const title = frontmatter.title === undefined ? file.basename : String(frontmatter.title ?? "");
+	const title = resolveTitle(frontmatter.title, file.basename);
 	const slug = frontmatter.slug;
 	const canonicalUrl = frontmatter.canonical_url;
 	const pagecordToken = frontmatter.pagecord_token;

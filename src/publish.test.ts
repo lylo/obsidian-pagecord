@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { IMAGE_EXTENSIONS, WIKILINK_IMAGE, MARKDOWN_IMAGE, hashArrayBuffer } from "./publish";
+import { IMAGE_EXTENSIONS, WIKILINK_IMAGE, MARKDOWN_IMAGE, hashArrayBuffer, resolveTitle } from "./publish";
 
 describe("IMAGE_EXTENSIONS", () => {
 	it.each(["photo.jpg", "photo.jpeg", "photo.JPG", "image.png", "anim.gif", "pic.webp"])(
@@ -80,10 +80,6 @@ describe("hashArrayBuffer", () => {
 });
 
 describe("frontmatter title logic", () => {
-	function resolveTitle(fmTitle: unknown, basename: string): string {
-		return fmTitle === undefined ? basename : String(fmTitle ?? "");
-	}
-
 	it("uses frontmatter title when present", () => {
 		expect(resolveTitle("My Title", "filename")).toBe("My Title");
 	});
@@ -102,6 +98,18 @@ describe("frontmatter title logic", () => {
 
 	it("uses the literal string \"false\" when title is false", () => {
 		expect(resolveTitle(false, "filename")).toBe("false");
+	});
+
+	it("stringifies numeric titles", () => {
+		expect(resolveTitle(123, "filename")).toBe("123");
+	});
+
+	it("stringifies array titles as JSON", () => {
+		expect(resolveTitle([1, 2, 3], "filename")).toBe("[1,2,3]");
+	});
+
+	it("stringifies object titles as JSON", () => {
+		expect(resolveTitle({ title: "Nested" }, "filename")).toBe('{"title":"Nested"}');
 	});
 });
 
