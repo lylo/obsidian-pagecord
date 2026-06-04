@@ -114,8 +114,8 @@ class PagecordSettingTab extends PluginSettingTab {
 						button
 							.setIcon("trash")
 							.setTooltip("Delete blog connection")
-							.onClick(async () => {
-								await this.deleteBlog(index);
+							.onClick(() => {
+								this.openDeleteModal(index);
 							})
 					);
 			});
@@ -137,6 +137,15 @@ class PagecordSettingTab extends PluginSettingTab {
 			await this.plugin.saveSettings();
 			this.plugin.refreshPublishCommands();
 			this.display();
+		}).open();
+	}
+
+	private openDeleteModal(index: number) {
+		const blog = this.plugin.settings.blogs[index];
+		if (!blog) return;
+
+		new DeleteConnectionModal(this.app, blog, async () => {
+			await this.deleteBlog(index);
 		}).open();
 	}
 
@@ -224,6 +233,45 @@ class BlogConnectionModal extends Modal {
 
 	private updateSaveButton() {
 		this.saveButton?.setDisabled(!this.canSave());
+	}
+}
+
+class DeleteConnectionModal extends Modal {
+	constructor(
+		app: App,
+		private blog: PagecordBlogSettings,
+		private onConfirm: () => Promise<void>,
+	) {
+		super(app);
+	}
+
+	onOpen() {
+		const blogName = this.blog.name.trim();
+		const connectionName = blogName || "this blog";
+		this.setTitle("Delete blog connection");
+
+		this.contentEl.createEl("p", {
+			text: `Are you sure you want to delete the connection to ${connectionName}?`,
+		});
+
+		new Setting(this.contentEl)
+			.addButton((button) =>
+				button
+					.setButtonText("Cancel")
+					.onClick(() => {
+						this.close();
+					})
+			)
+			.addButton((button) =>
+				button
+					.setButtonText("Delete connection")
+					.setWarning()
+					.setCta()
+					.onClick(async () => {
+						this.close();
+						await this.onConfirm();
+					})
+			);
 	}
 }
 
