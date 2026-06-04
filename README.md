@@ -96,7 +96,33 @@ npm install
 npm run build
 ```
 
-Copy `main.js` and `manifest.json` to your vault's `.obsidian/plugins/obsidian-pagecord/` directory.
+Copy `main.js` and `manifest.json` to your vault's `.obsidian/plugins/pagecord/` directory.
+
+## Local Development
+
+The plugin sends requests to `https://api.pagecord.com` by default. To point a local test install at another Pagecord API host, add a `baseUrl` value to the plugin's Obsidian data file.
+
+The data file lives inside your vault:
+
+```
+<vault>/.obsidian/plugins/pagecord/data.json
+```
+
+For a local Pagecord environment, it should look like this:
+
+```json
+{
+	"baseUrl": "http://api.localhost:3000",
+	"blogs": [
+		{
+			"name": "Local test blog",
+			"apiKey": "your-api-key"
+		}
+	]
+}
+```
+
+If Obsidian has already saved your Pagecord settings, keep the existing `blogs` array and add only the top-level `baseUrl` field.
 
 ## License
 
