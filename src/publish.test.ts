@@ -1,4 +1,4 @@
-import type { App } from "obsidian";
+import { Notice, type App } from "obsidian";
 import { afterEach, describe, it, expect, vi } from "vitest";
 import { ApiError, PagecordAPI, PagecordBlogSettings } from "./api";
 import {
@@ -34,9 +34,11 @@ function createApp(frontmatter: Record<string, unknown>, content = "# Hello"): A
 }
 
 const BLOG: PagecordBlogSettings = { name: "Personal", apiKey: "key-1" };
+const noticeMessages = Notice as unknown as { messages: string[] };
 
 afterEach(() => {
 	vi.restoreAllMocks();
+	noticeMessages.messages = [];
 });
 
 describe("IMAGE_EXTENSIONS", () => {
@@ -217,10 +219,26 @@ describe("publishPost blog fingerprint", () => {
 		expect(frontmatter.pagecord_token).toBe("new-token");
 		expect(frontmatter.pagecord_blog_fingerprint).toBe(await blogFingerprint(BLOG.apiKey));
 		expect(frontmatter.status).toBe("published");
+		expect(noticeMessages.messages).toContain("Published to Personal");
+	});
+
+	it("shows when a draft is created", async () => {
+		const frontmatter: Record<string, unknown> = {};
+		const app = createApp(frontmatter);
+		vi.spyOn(PagecordAPI.prototype, "createPost").mockResolvedValue({
+			token: "new-token",
+			title: "Hello",
+			slug: "hello",
+			status: "draft",
+		});
+
+		await publishPost(app, BLOG, "draft");
+
+		expect(noticeMessages.messages).toContain("Draft created on Personal");
 	});
 
 	it("updates legacy notes without a fingerprint and writes one after success", async () => {
-		const frontmatter: Record<string, unknown> = { pagecord_token: "old-token" };
+		const frontmatter: Record<string, unknown> = { pagecord_token: "old-token", status: "draft" };
 		const app = createApp(frontmatter);
 		const updatePost = vi.spyOn(PagecordAPI.prototype, "updatePost").mockResolvedValue({
 			token: "old-token",
@@ -234,6 +252,52 @@ describe("publishPost blog fingerprint", () => {
 		expect(updatePost).toHaveBeenCalledWith("old-token", expect.objectContaining({ status: "draft" }));
 		expect(frontmatter.pagecord_token).toBe("old-token");
 		expect(frontmatter.pagecord_blog_fingerprint).toBe(await blogFingerprint(BLOG.apiKey));
+		expect(noticeMessages.messages).toContain("Draft updated on Personal");
+	});
+
+	it("shows when a published post is updated", async () => {
+		const frontmatter: Record<string, unknown> = { pagecord_token: "old-token", status: "published" };
+		const app = createApp(frontmatter);
+		vi.spyOn(PagecordAPI.prototype, "updatePost").mockResolvedValue({
+			token: "old-token",
+			title: "Hello",
+			slug: "hello",
+			status: "published",
+		});
+
+		await publishPost(app, BLOG, "published");
+
+		expect(noticeMessages.messages).toContain("Updated post on Personal");
+	});
+
+	it("shows when a draft is published", async () => {
+		const frontmatter: Record<string, unknown> = { pagecord_token: "old-token", status: "draft" };
+		const app = createApp(frontmatter);
+		vi.spyOn(PagecordAPI.prototype, "updatePost").mockResolvedValue({
+			token: "old-token",
+			title: "Hello",
+			slug: "hello",
+			status: "published",
+		});
+
+		await publishPost(app, BLOG, "published");
+
+		expect(noticeMessages.messages).toContain("Published to Personal");
+	});
+
+	it("shows when a published post is unpublished to draft", async () => {
+		const frontmatter: Record<string, unknown> = { pagecord_token: "old-token", status: "published" };
+		const app = createApp(frontmatter);
+		vi.spyOn(PagecordAPI.prototype, "updatePost").mockResolvedValue({
+			token: "old-token",
+			title: "Hello",
+			slug: "hello",
+			status: "draft",
+		});
+
+		await publishPost(app, BLOG, "draft");
+
+		expect(noticeMessages.messages).toContain("Unpublished from Personal");
 	});
 
 	it("aborts when the selected blog does not match the note fingerprint", async () => {

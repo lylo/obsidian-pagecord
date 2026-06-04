@@ -29,6 +29,7 @@ interface PagecordFrontmatter {
 	hidden?: boolean;
 	locale?: string;
 	content_format?: string;
+	status?: string;
 	tags?: string | string[];
 	pagecord_attachments?: AttachmentCache;
 }
@@ -53,6 +54,7 @@ export function resolveTitle(frontmatterTitle: unknown, basename: string): strin
 }
 
 export async function publishPost(app: App, blog: PagecordBlogSettings, status: "published" | "draft"): Promise<void> {
+	const blogName = blog.name.trim() || "Pagecord";
 	const file = app.workspace.getActiveFile();
 	if (!file) {
 		new Notice("No active file.");
@@ -76,6 +78,9 @@ export async function publishPost(app: App, blog: PagecordBlogSettings, status: 
 	const hidden = frontmatter.hidden;
 	const locale = frontmatter.locale;
 	const contentFormat = frontmatter.content_format === "html" ? "html" as const : "markdown" as const;
+	const previousStatus = frontmatter.status === "published" || frontmatter.status === "draft"
+		? frontmatter.status
+		: undefined;
 	const cachedAttachments: AttachmentCache = frontmatter.pagecord_attachments ?? {};
 
 	if (pagecordToken && pagecordBlogFingerprint && pagecordBlogFingerprint !== fingerprint) {
@@ -123,15 +128,15 @@ export async function publishPost(app: App, blog: PagecordBlogSettings, status: 
 
 	try {
 		let token = pagecordToken;
+		const isUpdate = Boolean(pagecordToken);
 
 		if (pagecordToken) {
 			await api.updatePost(pagecordToken, params);
-			new Notice(`Updated on Pagecord (${status}).`);
 		} else {
 			const post = await api.createPost(params);
 			token = post.token;
-			new Notice(`Published to Pagecord (${status}).`);
 		}
+		new Notice(publishNoticeMessage(blogName, status, isUpdate, previousStatus));
 		await app.fileManager.processFrontMatter(file, (fm: Record<string, unknown>) => {
 			fm.pagecord_token = token;
 			fm.pagecord_blog_fingerprint = fingerprint;
@@ -150,6 +155,21 @@ export async function publishPost(app: App, blog: PagecordBlogSettings, status: 
 		}
 		handleApiError(error);
 	}
+}
+
+function publishNoticeMessage(
+	blogName: string,
+	status: "published" | "draft",
+	isUpdate: boolean,
+	previousStatus?: "published" | "draft",
+): string {
+	if (!isUpdate) return status === "draft" ? `Draft created on ${blogName}` : `Published to ${blogName}`;
+
+	if (status === "draft") {
+		return previousStatus === "published" ? `Unpublished from ${blogName}` : `Draft updated on ${blogName}`;
+	}
+
+	return previousStatus === "draft" ? `Published to ${blogName}` : `Updated post on ${blogName}`;
 }
 
 async function processImages(
