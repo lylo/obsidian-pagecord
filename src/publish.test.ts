@@ -1,5 +1,43 @@
-import { describe, it, expect } from "vitest";
-import { IMAGE_EXTENSIONS, WIKILINK_IMAGE, MARKDOWN_IMAGE, hashArrayBuffer, resolveTitle } from "./publish";
+import type { App } from "obsidian";
+import { afterEach, describe, it, expect, vi } from "vitest";
+import { ApiError, PagecordAPI, PagecordBlogSettings } from "./api";
+import {
+	IMAGE_EXTENSIONS,
+	WIKILINK_IMAGE,
+	MARKDOWN_IMAGE,
+	blogFingerprint,
+	hashArrayBuffer,
+	publishPost,
+	resolveTitle,
+} from "./publish";
+
+function createApp(frontmatter: Record<string, unknown>, content = "# Hello"): App {
+	const file = { basename: "Hello", path: "Hello.md" };
+
+	return {
+		workspace: {
+			getActiveFile: () => file,
+		},
+		metadataCache: {
+			getFileCache: () => ({ frontmatter }),
+			getFirstLinkpathDest: () => null,
+		},
+		vault: {
+			read: async () => content,
+		},
+		fileManager: {
+			processFrontMatter: async (_file: unknown, callback: (fm: Record<string, unknown>) => void) => {
+				callback(frontmatter);
+			},
+		},
+	} as unknown as App;
+}
+
+const BLOG: PagecordBlogSettings = { name: "Personal", apiKey: "key-1" };
+
+afterEach(() => {
+	vi.restoreAllMocks();
+});
 
 describe("IMAGE_EXTENSIONS", () => {
 	it.each(["photo.jpg", "photo.jpeg", "photo.JPG", "image.png", "anim.gif", "pic.webp"])(
@@ -79,6 +117,19 @@ describe("hashArrayBuffer", () => {
 	});
 });
 
+describe("blogFingerprint", () => {
+	it("returns a stable short fingerprint", async () => {
+		const fingerprint = await blogFingerprint("key-1");
+
+		expect(fingerprint).toMatch(/^[0-9a-f]{12}$/);
+		expect(fingerprint).toBe(await blogFingerprint("key-1"));
+	});
+
+	it("returns different fingerprints for different keys", async () => {
+		expect(await blogFingerprint("key-1")).not.toBe(await blogFingerprint("key-2"));
+	});
+});
+
 describe("frontmatter title logic", () => {
 	it("uses frontmatter title when present", () => {
 		expect(resolveTitle("My Title", "filename")).toBe("My Title");
@@ -147,5 +198,68 @@ describe("status logic", () => {
 		expect(hasFmStatus("published")).toBe(true);
 		expect(hasFmStatus(undefined)).toBe(false);
 		expect(hasFmStatus("invalid")).toBe(false);
+	});
+});
+
+describe("publishPost blog fingerprint", () => {
+	it("writes the blog fingerprint when creating a post", async () => {
+		const frontmatter: Record<string, unknown> = {};
+		const app = createApp(frontmatter);
+		vi.spyOn(PagecordAPI.prototype, "createPost").mockResolvedValue({
+			token: "new-token",
+			title: "Hello",
+			slug: "hello",
+			status: "published",
+		});
+
+		await publishPost(app, BLOG, "published");
+
+		expect(frontmatter.pagecord_token).toBe("new-token");
+		expect(frontmatter.pagecord_blog_fingerprint).toBe(await blogFingerprint(BLOG.apiKey));
+		expect(frontmatter.status).toBe("published");
+	});
+
+	it("updates legacy notes without a fingerprint and writes one after success", async () => {
+		const frontmatter: Record<string, unknown> = { pagecord_token: "old-token" };
+		const app = createApp(frontmatter);
+		const updatePost = vi.spyOn(PagecordAPI.prototype, "updatePost").mockResolvedValue({
+			token: "old-token",
+			title: "Hello",
+			slug: "hello",
+			status: "draft",
+		});
+
+		await publishPost(app, BLOG, "draft");
+
+		expect(updatePost).toHaveBeenCalledWith("old-token", expect.objectContaining({ status: "draft" }));
+		expect(frontmatter.pagecord_token).toBe("old-token");
+		expect(frontmatter.pagecord_blog_fingerprint).toBe(await blogFingerprint(BLOG.apiKey));
+	});
+
+	it("aborts when the selected blog does not match the note fingerprint", async () => {
+		const frontmatter: Record<string, unknown> = {
+			pagecord_token: "old-token",
+			pagecord_blog_fingerprint: await blogFingerprint("other-key"),
+		};
+		const app = createApp(frontmatter);
+		const createPost = vi.spyOn(PagecordAPI.prototype, "createPost");
+		const updatePost = vi.spyOn(PagecordAPI.prototype, "updatePost");
+
+		await publishPost(app, BLOG, "published");
+
+		expect(createPost).not.toHaveBeenCalled();
+		expect(updatePost).not.toHaveBeenCalled();
+		expect(frontmatter.status).toBeUndefined();
+	});
+
+	it("does not delete a legacy token when a no-fingerprint update returns 404", async () => {
+		const frontmatter: Record<string, unknown> = { pagecord_token: "old-token" };
+		const app = createApp(frontmatter);
+		vi.spyOn(PagecordAPI.prototype, "updatePost").mockRejectedValue(new ApiError(404, {}));
+
+		await publishPost(app, BLOG, "published");
+
+		expect(frontmatter.pagecord_token).toBe("old-token");
+		expect(frontmatter.pagecord_blog_fingerprint).toBeUndefined();
 	});
 });

@@ -1,5 +1,5 @@
 import { App, TFile, Notice } from "obsidian";
-import { PagecordAPI, PagecordSettings, ApiError, handleApiError } from "./api";
+import { PagecordAPI, PagecordBlogSettings, ApiError, handleApiError } from "./api";
 
 class UploadError extends Error {}
 
@@ -24,6 +24,7 @@ interface PagecordFrontmatter {
 	slug?: string;
 	canonical_url?: string;
 	pagecord_token?: string;
+	pagecord_blog_fingerprint?: string;
 	published_at?: string | number;
 	hidden?: boolean;
 	locale?: string;
@@ -38,6 +39,12 @@ export async function hashArrayBuffer(data: ArrayBuffer): Promise<string> {
 	return hashArray.map(b => b.toString(16).padStart(2, "0")).join("").slice(0, 16);
 }
 
+export async function blogFingerprint(apiKey: string): Promise<string> {
+	const hashBuffer = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(apiKey));
+	const hashArray = Array.from(new Uint8Array(hashBuffer));
+	return hashArray.map(b => b.toString(16).padStart(2, "0")).join("").slice(0, 12);
+}
+
 export function resolveTitle(frontmatterTitle: unknown, basename: string): string {
 	if (frontmatterTitle === undefined) return basename;
 	if (frontmatterTitle === null) return "";
@@ -45,30 +52,36 @@ export function resolveTitle(frontmatterTitle: unknown, basename: string): strin
 	return JSON.stringify(frontmatterTitle) ?? "";
 }
 
-export async function publishPost(app: App, settings: PagecordSettings, status: "published" | "draft"): Promise<void> {
+export async function publishPost(app: App, blog: PagecordBlogSettings, status: "published" | "draft"): Promise<void> {
 	const file = app.workspace.getActiveFile();
 	if (!file) {
 		new Notice("No active file.");
 		return;
 	}
 
-	if (!settings.apiKey) {
-		new Notice("Configure your API key in settings.");
+	if (!blog.apiKey) {
+		new Notice("Configure your blog API key in settings.");
 		return;
 	}
 
-	const api = new PagecordAPI(settings);
 	const frontmatter = (app.metadataCache.getFileCache(file)?.frontmatter ?? {}) as PagecordFrontmatter;
+	const fingerprint = await blogFingerprint(blog.apiKey);
 
 	const title = resolveTitle(frontmatter.title, file.basename);
 	const slug = frontmatter.slug;
 	const canonicalUrl = frontmatter.canonical_url;
 	const pagecordToken = frontmatter.pagecord_token;
+	const pagecordBlogFingerprint = frontmatter.pagecord_blog_fingerprint;
 	const publishedAt = frontmatter.published_at;
 	const hidden = frontmatter.hidden;
 	const locale = frontmatter.locale;
 	const contentFormat = frontmatter.content_format === "html" ? "html" as const : "markdown" as const;
 	const cachedAttachments: AttachmentCache = frontmatter.pagecord_attachments ?? {};
+
+	if (pagecordToken && pagecordBlogFingerprint && pagecordBlogFingerprint !== fingerprint) {
+		new Notice("This note is linked to another configured blog. Use that blog's publish command.");
+		return;
+	}
 
 	let tags: string | undefined;
 	if (frontmatter.tags) {
@@ -80,6 +93,7 @@ export async function publishPost(app: App, settings: PagecordSettings, status: 
 	let content = await app.vault.read(file);
 	content = content.replace(/^---\n[\s\S]*?\n---\n/, "");
 
+	const api = new PagecordAPI(blog);
 	let updatedAttachments: AttachmentCache;
 	try {
 		const result = await processImages(app, api, file, content, cachedAttachments);
@@ -108,17 +122,19 @@ export async function publishPost(app: App, settings: PagecordSettings, status: 
 	};
 
 	try {
+		let token = pagecordToken;
+
 		if (pagecordToken) {
 			await api.updatePost(pagecordToken, params);
 			new Notice(`Updated on Pagecord (${status}).`);
 		} else {
 			const post = await api.createPost(params);
-			await app.fileManager.processFrontMatter(file, (fm: Record<string, unknown>) => {
-				fm.pagecord_token = post.token;
-			});
+			token = post.token;
 			new Notice(`Published to Pagecord (${status}).`);
 		}
 		await app.fileManager.processFrontMatter(file, (fm: Record<string, unknown>) => {
+			fm.pagecord_token = token;
+			fm.pagecord_blog_fingerprint = fingerprint;
 			fm.status = status;
 		});
 		if (Object.keys(updatedAttachments).length > 0) {
@@ -127,7 +143,7 @@ export async function publishPost(app: App, settings: PagecordSettings, status: 
 			});
 		}
 	} catch (error: unknown) {
-		if (error instanceof ApiError && error.status === 404 && pagecordToken) {
+		if (error instanceof ApiError && error.status === 404 && pagecordToken && pagecordBlogFingerprint) {
 			await app.fileManager.processFrontMatter(file, (fm: Record<string, unknown>) => {
 				delete fm.pagecord_token;
 			});

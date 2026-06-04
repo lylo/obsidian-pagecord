@@ -11,6 +11,7 @@ Write in Obsidian, hit a command, done. Supports images, frontmatter, and drafts
 - Publish notes as blog posts or drafts
 - Update existing posts (tracks via frontmatter)
 - Upload embedded images automatically
+- Publish to multiple configured Pagecord blogs
 - Read title, slug, tags, and more from frontmatter
 
 ## Installation
@@ -21,16 +22,20 @@ In Obsidian, go to **Settings → Community Plugins → Browse** and search for 
 
 1. Enable the API in your Pagecord blog settings
 2. Copy your API key
-3. In Obsidian, go to **Settings → Pagecord** and paste your API key
+3. In Obsidian, go to **Settings → Pagecord**
+4. Under **Pagecord Blog Connections**, click the **+** icon
+5. Enter a blog name and API key, then click **Save**
+
+Use the edit and delete icons beside a connection to update or remove it. Deleting a connection only removes it from Obsidian settings; it does not delete the Pagecord blog.
 
 ## Commands
 
 Open the command palette (`Cmd/Ctrl + P`) and run:
 
-- **Publish to Pagecord** – creates or updates the post as published
-- **Publish as draft to Pagecord** – creates or updates the post as a draft
+- **Publish to Blog Name** – creates or updates the post as published
+- **Publish to Blog Name (draft)** – creates or updates the post as a draft
 
-Commands are only available when a markdown file is active.
+Commands are only available when a markdown file is active. One pair of commands is shown for each saved blog connection.
 
 ## Frontmatter
 
@@ -63,10 +68,11 @@ All fields are optional. You do not need frontmatter for the basics: the plugin 
 After publishing, the plugin adds metadata to your frontmatter automatically:
 
 - `pagecord_token` – links the note to the Pagecord post so future publishes update it instead of creating a duplicate
+- `pagecord_blog_fingerprint` – links the note to the configured Pagecord blog used for publishing. It does not contain your API key
 - `pagecord_attachments` – caches uploaded image hashes so unchanged images aren't re-uploaded
 - `status` – records the last status used by the publish command
 
-These fields are managed by the plugin. Deleting `pagecord_token` will cause the next publish to create a new post.
+These fields are managed by the plugin. Deleting `pagecord_token` will cause the next publish to create a new post. Existing notes published before multi-blog support still work; the plugin adds `pagecord_blog_fingerprint` after the next successful update.
 
 ## Images
 

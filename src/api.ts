@@ -10,8 +10,23 @@ export class ApiError extends Error {
 }
 
 export interface PagecordSettings {
+	blogs: PagecordBlogSettings[];
+	baseUrl?: string;
+	apiKey?: string;
+}
+
+export interface PagecordAPISettings {
 	apiKey: string;
 	baseUrl?: string;
+}
+
+export interface PagecordBlogSettings extends PagecordAPISettings {
+	name: string;
+}
+
+export interface ConfiguredBlog {
+	index: number;
+	blog: PagecordBlogSettings;
 }
 
 interface PostParams {
@@ -39,7 +54,7 @@ interface AttachmentResponse {
 }
 
 export class PagecordAPI {
-	constructor(private settings: PagecordSettings) {}
+	constructor(private settings: PagecordAPISettings) {}
 
 	private get baseUrl(): string {
 		return (this.settings.baseUrl || DEFAULT_BASE_URL).replace(/\/+$/, "");
@@ -90,6 +105,35 @@ export class PagecordAPI {
 
 		return response.json as T;
 	}
+}
+
+export function normalizeSettings(data: Partial<PagecordSettings> | null): PagecordSettings {
+	const blogs = Array.isArray(data?.blogs)
+		? data.blogs.map((blog) => ({
+			name: typeof blog.name === "string" ? blog.name : "",
+			apiKey: typeof blog.apiKey === "string" ? blog.apiKey : "",
+		}))
+		: [];
+
+	if (blogs.length === 0 && typeof data?.apiKey === "string" && data.apiKey.length > 0) {
+		blogs.push({ name: "Pagecord", apiKey: data.apiKey });
+	}
+
+	return {
+		blogs,
+		...(typeof data?.baseUrl === "string" && { baseUrl: data.baseUrl }),
+	};
+}
+
+export function getConfiguredBlogs(settings: PagecordSettings): ConfiguredBlog[] {
+	return settings.blogs.flatMap((blog, index) => {
+		const name = blog.name.trim();
+		const apiKey = blog.apiKey.trim();
+
+		if (!name || !apiKey) return [];
+
+		return [{ index, blog: { name, apiKey } }];
+	});
 }
 
 export function handleApiError(error: unknown): void {
