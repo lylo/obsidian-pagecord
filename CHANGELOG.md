@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.1
+
+- Improved publish notices so they include the selected blog name and distinguish created, updated, published, draft, and unpublished states.
+- Added a confirmation dialog before deleting a blog connection.
+- Documented local development `baseUrl` configuration for testing against `api.localhost`.
+
 ## 1.1.0
 
 - Added support for multiple configured Pagecord blogs.
