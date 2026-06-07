@@ -137,12 +137,22 @@ describe("frontmatter title logic", () => {
 		expect(resolveTitle("My Title", "filename")).toBe("My Title");
 	});
 
+	it("removes wrapping quotes when Obsidian returns them literally", () => {
+		expect(resolveTitle('"My Title"', "filename")).toBe("My Title");
+		expect(resolveTitle("'My Title'", "filename")).toBe("My Title");
+	});
+
 	it("falls back to basename when title is omitted", () => {
 		expect(resolveTitle(undefined, "filename")).toBe("filename");
 	});
 
 	it("sends empty string when title is an empty string", () => {
 		expect(resolveTitle("", "filename")).toBe("");
+	});
+
+	it("sends empty string when title is a quoted empty string", () => {
+		expect(resolveTitle('""', "filename")).toBe("");
+		expect(resolveTitle("''", "filename")).toBe("");
 	});
 
 	it("sends empty string when title is null (bare YAML key)", () => {
@@ -204,6 +214,48 @@ describe("status logic", () => {
 });
 
 describe("publishPost blog fingerprint", () => {
+	it("normalizes quoted frontmatter strings before publishing", async () => {
+		const fingerprint = await blogFingerprint(BLOG.apiKey);
+		const frontmatter: Record<string, unknown> = {
+			pagecord_token: '"old-token"',
+			pagecord_blog_fingerprint: `"${fingerprint}"`,
+			title: '"Quoted Title"',
+			slug: '"quoted-slug"',
+			tags: ['"personal"', '"update"'],
+			published_at: '"2025-01-15T10:00:00Z"',
+			canonical_url: '"https://example.com/original"',
+			hidden: '"false"',
+			locale: '"en"',
+			content_format: '"html"',
+			status: '"published"',
+		};
+		const app = createApp(frontmatter);
+		const updatePost = vi.spyOn(PagecordAPI.prototype, "updatePost").mockResolvedValue({
+			token: "old-token",
+			title: "Quoted Title",
+			slug: "quoted-slug",
+			status: "draft",
+		});
+
+		await publishPost(app, BLOG, "draft");
+
+		expect(updatePost).toHaveBeenCalledWith("old-token", {
+			title: "Quoted Title",
+			content: "# Hello",
+			status: "draft",
+			content_format: "html",
+			slug: "quoted-slug",
+			tags: "personal, update",
+			canonical_url: "https://example.com/original",
+			published_at: "2025-01-15T10:00:00Z",
+			hidden: false,
+			locale: "en",
+		});
+		expect(frontmatter.pagecord_token).toBe("old-token");
+		expect(frontmatter.pagecord_blog_fingerprint).toBe(fingerprint);
+		expect(noticeMessages.messages).toContain("Unpublished from Personal");
+	});
+
 	it("writes the blog fingerprint when creating a post", async () => {
 		const frontmatter: Record<string, unknown> = {};
 		const app = createApp(frontmatter);

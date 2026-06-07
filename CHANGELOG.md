@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.2
+
+- Normalized quoted frontmatter values before publishing, including `title: ""` as a no-title opt-out.
+
 ## 1.1.1
 
 - Improved publish notices so they include the selected blog name and distinguish created, updated, published, draft, and unpublished states.

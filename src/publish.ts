@@ -21,16 +21,16 @@ interface AttachmentCache {
 
 interface PagecordFrontmatter {
 	title?: unknown;
-	slug?: string;
-	canonical_url?: string;
-	pagecord_token?: string;
-	pagecord_blog_fingerprint?: string;
-	published_at?: string | number;
-	hidden?: boolean;
-	locale?: string;
-	content_format?: string;
-	status?: string;
-	tags?: string | string[];
+	slug?: unknown;
+	canonical_url?: unknown;
+	pagecord_token?: unknown;
+	pagecord_blog_fingerprint?: unknown;
+	published_at?: unknown;
+	hidden?: unknown;
+	locale?: unknown;
+	content_format?: unknown;
+	status?: unknown;
+	tags?: unknown;
 	pagecord_attachments?: AttachmentCache;
 }
 
@@ -46,10 +46,32 @@ export async function blogFingerprint(apiKey: string): Promise<string> {
 	return hashArray.map(b => b.toString(16).padStart(2, "0")).join("").slice(0, 12);
 }
 
+function unquoteFrontmatterString(value: string): string {
+	const quoted = value.match(/^(['"])(.*)\1$/);
+	return quoted ? quoted[2] : value;
+}
+
+function frontmatterString(value: unknown): string | undefined {
+	if (value == null) return undefined;
+	if (typeof value === "string") return unquoteFrontmatterString(value);
+	return String(value);
+}
+
+function frontmatterBoolean(value: unknown): boolean | undefined {
+	if (value == null) return undefined;
+	if (typeof value === "boolean") return value;
+	if (typeof value === "string") {
+		const normalized = unquoteFrontmatterString(value).trim().toLowerCase();
+		if (normalized === "true") return true;
+		if (normalized === "false") return false;
+	}
+	return Boolean(value);
+}
+
 export function resolveTitle(frontmatterTitle: unknown, basename: string): string {
 	if (frontmatterTitle === undefined) return basename;
 	if (frontmatterTitle === null) return "";
-	if (typeof frontmatterTitle === "string") return frontmatterTitle;
+	if (typeof frontmatterTitle === "string") return unquoteFrontmatterString(frontmatterTitle);
 	return JSON.stringify(frontmatterTitle) ?? "";
 }
 
@@ -70,16 +92,17 @@ export async function publishPost(app: App, blog: PagecordBlogSettings, status: 
 	const fingerprint = await blogFingerprint(blog.apiKey);
 
 	const title = resolveTitle(frontmatter.title, file.basename);
-	const slug = frontmatter.slug;
-	const canonicalUrl = frontmatter.canonical_url;
-	const pagecordToken = frontmatter.pagecord_token;
-	const pagecordBlogFingerprint = frontmatter.pagecord_blog_fingerprint;
-	const publishedAt = frontmatter.published_at;
-	const hidden = frontmatter.hidden;
-	const locale = frontmatter.locale;
-	const contentFormat = frontmatter.content_format === "html" ? "html" as const : "markdown" as const;
-	const previousStatus = frontmatter.status === "published" || frontmatter.status === "draft"
-		? frontmatter.status
+	const slug = frontmatterString(frontmatter.slug);
+	const canonicalUrl = frontmatterString(frontmatter.canonical_url);
+	const pagecordToken = frontmatterString(frontmatter.pagecord_token);
+	const pagecordBlogFingerprint = frontmatterString(frontmatter.pagecord_blog_fingerprint);
+	const publishedAt = frontmatterString(frontmatter.published_at);
+	const hidden = frontmatterBoolean(frontmatter.hidden);
+	const locale = frontmatterString(frontmatter.locale);
+	const contentFormat = frontmatterString(frontmatter.content_format) === "html" ? "html" as const : "markdown" as const;
+	const frontmatterStatus = frontmatterString(frontmatter.status);
+	const previousStatus = frontmatterStatus === "published" || frontmatterStatus === "draft"
+		? frontmatterStatus
 		: undefined;
 	const cachedAttachments: AttachmentCache = frontmatter.pagecord_attachments ?? {};
 
@@ -91,8 +114,8 @@ export async function publishPost(app: App, blog: PagecordBlogSettings, status: 
 	let tags: string | undefined;
 	if (frontmatter.tags) {
 		tags = Array.isArray(frontmatter.tags)
-			? frontmatter.tags.join(", ")
-			: String(frontmatter.tags);
+			? frontmatter.tags.map(tag => frontmatterString(tag) ?? "").join(", ")
+			: frontmatterString(frontmatter.tags);
 	}
 
 	let content = await app.vault.read(file);
