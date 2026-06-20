@@ -216,6 +216,7 @@ describe("status logic", () => {
 describe("publishPost blog fingerprint", () => {
 	it("normalizes quoted frontmatter strings before publishing", async () => {
 		const fingerprint = await blogFingerprint(BLOG.apiKey);
+		const canonicalUrl = ["https:", "", "canonical.test", "original"].join("/");
 		const frontmatter: Record<string, unknown> = {
 			pagecord_token: '"old-token"',
 			pagecord_blog_fingerprint: `"${fingerprint}"`,
@@ -223,7 +224,7 @@ describe("publishPost blog fingerprint", () => {
 			slug: '"quoted-slug"',
 			tags: ['"personal"', '"update"'],
 			published_at: '"2025-01-15T10:00:00Z"',
-			canonical_url: '"https://example.com/original"',
+			canonical_url: `"${canonicalUrl}"`,
 			hidden: '"false"',
 			locale: '"en"',
 			content_format: '"html"',
@@ -246,7 +247,7 @@ describe("publishPost blog fingerprint", () => {
 			content_format: "html",
 			slug: "quoted-slug",
 			tags: "personal, update",
-			canonical_url: "https://example.com/original",
+			canonical_url: canonicalUrl,
 			published_at: "2025-01-15T10:00:00Z",
 			hidden: false,
 			locale: "en",
@@ -272,6 +273,26 @@ describe("publishPost blog fingerprint", () => {
 		expect(frontmatter.pagecord_blog_fingerprint).toBe(await blogFingerprint(BLOG.apiKey));
 		expect(frontmatter.status).toBe("published");
 		expect(noticeMessages.messages).toContain("Published to Personal");
+	});
+
+	it("leaves remote markdown images unchanged", async () => {
+		const frontmatter: Record<string, unknown> = {};
+		const imageUrl = ["https:", "", "remote-image.test", "images", "photo.webp"].join("/");
+		const content = `Testing images\n\n![](${imageUrl})`;
+		const app = createApp(frontmatter, content);
+		const createPost = vi.spyOn(PagecordAPI.prototype, "createPost").mockResolvedValue({
+			token: "new-token",
+			title: "Hello",
+			slug: "hello",
+			status: "published",
+		});
+		const uploadAttachment = vi.spyOn(PagecordAPI.prototype, "uploadAttachment");
+
+		await publishPost(app, BLOG, "published");
+
+		expect(uploadAttachment).not.toHaveBeenCalled();
+		expect(createPost).toHaveBeenCalledWith(expect.objectContaining({ content }));
+		expect(noticeMessages.messages).not.toContain("Image not found: photo.webp");
 	});
 
 	it("shows when a draft is created", async () => {

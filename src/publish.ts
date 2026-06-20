@@ -6,6 +6,7 @@ class UploadError extends Error {}
 export const IMAGE_EXTENSIONS = /\.(jpe?g|png|gif|webp)$/i;
 export const WIKILINK_IMAGE = /!\[\[([^\]]+?)\]\]/g;
 export const MARKDOWN_IMAGE = /!\[([^\]]*)\]\(([^)]+?)\)/g;
+const REMOTE_IMAGE_URL = /^(?:https?:)?\/\//i;
 
 const CONTENT_TYPES: Record<string, string> = {
 	jpg: "image/jpeg",
@@ -208,6 +209,8 @@ async function processImages(
 	}
 
 	for (const m of content.matchAll(MARKDOWN_IMAGE)) {
+		if (REMOTE_IMAGE_URL.test(m[2])) continue;
+
 		const path = decodeURIComponent(m[2]);
 		if (IMAGE_EXTENSIONS.test(path)) {
 			const filename = path.split("/").pop() || path;

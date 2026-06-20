@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.3
+
+- Fixed publishing notes that include remote Markdown images, leaving external image URLs unchanged instead of treating them as missing vault files.
+
 ## 1.1.2
 
 - Normalized quoted frontmatter values before publishing, including `title: ""` as a no-title opt-out.
