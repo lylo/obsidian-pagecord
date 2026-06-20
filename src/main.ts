@@ -1,4 +1,4 @@
-import { Plugin, PluginSettingTab, App, ButtonComponent, Modal, Setting, SettingGroup } from "obsidian";
+import { Plugin, PluginSettingTab, App, ButtonComponent, Modal, Setting, SettingGroup, activeDocument } from "obsidian";
 import { getConfiguredBlogs, normalizeSettings, PagecordBlogSettings, PagecordSettings } from "./api";
 import { publishPost } from "./publish";
 
@@ -276,7 +276,7 @@ class DeleteConnectionModal extends Modal {
 }
 
 function apiKeySuffixDescription(suffix: string): DocumentFragment {
-	const fragment = document.createDocumentFragment();
+	const fragment = activeDocument.createDocumentFragment();
 	fragment.appendText("API key ending in ");
 	fragment.createEl("strong", { text: suffix });
 	return fragment;
