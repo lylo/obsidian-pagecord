@@ -5,7 +5,9 @@ class UploadError extends Error {}
 
 export const IMAGE_EXTENSIONS = /\.(jpe?g|png|gif|webp)$/i;
 export const WIKILINK_IMAGE = /!\[\[([^\]]+?)\]\]/g;
-export const MARKDOWN_IMAGE = /!\[([^\]]*)\]\(([^)]+?)\)/g;
+// ![alt](photo.jpg "A caption") — the alt describes the image, the optional
+// title captions it
+export const MARKDOWN_IMAGE = /!\[([^\]]*)\]\(([^)"]+?)(?:\s+"([^"]*)")?\)/g;
 const REMOTE_IMAGE_URL = /^(?:https?:)?\/\//i;
 
 const CONTENT_TYPES: Record<string, string> = {
@@ -196,15 +198,19 @@ function publishNoticeMessage(
 	return previousStatus === "draft" ? `Published to ${blogName}` : `Updated post on ${blogName}`;
 }
 
+function escapeAttribute(value: string): string {
+	return value.replace(/&/g, "&amp;").replace(/"/g, "&quot;");
+}
+
 async function processImages(
 	app: App, api: PagecordAPI, file: TFile, content: string, cache: AttachmentCache,
 ): Promise<{ content: string; attachments: AttachmentCache }> {
-	const images: { match: string; filename: string; path: string }[] = [];
+	const images: { match: string; filename: string; path: string; alt: string; title: string }[] = [];
 
 	for (const m of content.matchAll(WIKILINK_IMAGE)) {
 		const filename = m[1];
 		if (IMAGE_EXTENSIONS.test(filename)) {
-			images.push({ match: m[0], filename, path: filename });
+			images.push({ match: m[0], filename, path: filename, alt: "", title: "" });
 		}
 	}
 
@@ -214,7 +220,7 @@ async function processImages(
 		const path = decodeURIComponent(m[2]);
 		if (IMAGE_EXTENSIONS.test(path)) {
 			const filename = path.split("/").pop() || path;
-			images.push({ match: m[0], filename, path });
+			images.push({ match: m[0], filename, path, alt: m[1], title: m[3] || "" });
 		}
 	}
 
@@ -240,10 +246,13 @@ async function processImages(
 			sgid = attachment.attachable_sgid;
 		}
 
+		const alt = img.alt ? ` alt="${escapeAttribute(img.alt)}"` : "";
+		const caption = img.title ? ` caption="${escapeAttribute(img.title)}"` : "";
+
 		attachments[img.filename] = { hash, sgid };
 		content = content.replace(
 			img.match,
-			`<action-text-attachment sgid="${sgid}"></action-text-attachment>`
+			`<action-text-attachment sgid="${sgid}"${alt}${caption}></action-text-attachment>`
 		);
 	}
 

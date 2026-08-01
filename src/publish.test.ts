@@ -97,6 +97,30 @@ describe("MARKDOWN_IMAGE", () => {
 		expect(matches).toHaveLength(1);
 		expect(decodeURIComponent(matches[0][2])).toBe("my photo.jpg");
 	});
+
+	it("separates a quoted title from the path", () => {
+		const matches = [...'![A boat](photo.jpg "Sunset on the Mekong")'.matchAll(new RegExp(MARKDOWN_IMAGE))];
+		expect(matches).toHaveLength(1);
+		expect(matches[0][1]).toBe("A boat");
+		expect(matches[0][2]).toBe("photo.jpg");
+		expect(matches[0][3]).toBe("Sunset on the Mekong");
+	});
+
+	it("leaves the title undefined when absent", () => {
+		const matches = [...'![A boat](photo.jpg)'.matchAll(new RegExp(MARKDOWN_IMAGE))];
+		expect(matches[0][2]).toBe("photo.jpg");
+		expect(matches[0][3]).toBeUndefined();
+	});
+
+	it("keeps unquoted spaces in the path", () => {
+		const matches = [...'![](my photo.jpg)'.matchAll(new RegExp(MARKDOWN_IMAGE))];
+		expect(matches[0][2]).toBe("my photo.jpg");
+	});
+
+	it("still recognises the image when a title is given", () => {
+		const matches = [...'![A boat](photo.jpg "A caption")'.matchAll(new RegExp(MARKDOWN_IMAGE))];
+		expect(IMAGE_EXTENSIONS.test(matches[0][2])).toBe(true);
+	});
 });
 
 describe("hashArrayBuffer", () => {
