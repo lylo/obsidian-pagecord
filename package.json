@@ -4,14 +4,16 @@
 	"private": true,
 	"scripts": {
 		"build": "node esbuild.config.mjs",
-		"test": "vitest run"
+		"test": "vitest run",
+		"types:sync": "cp node_modules/obsidian/obsidian.d.ts types/obsidian.d.ts",
+		"types:check": "cmp -s node_modules/obsidian/obsidian.d.ts types/obsidian.d.ts || (echo \"types/obsidian.d.ts is stale — run npm run types:sync\" && exit 1)"
 	},
 	"devDependencies": {
 		"@types/node": "^22.0.0",
 		"esbuild": "^0.24.0",
 		"eslint": "^9.39.4",
 		"eslint-plugin-obsidianmd": "^0.4.1",
-		"obsidian": "latest",
+		"obsidian": "^1.13.1",
 		"typescript": "^5.6.0",
 		"typescript-eslint": "^8.57.1",
 		"vitest": "^4.0.18"
