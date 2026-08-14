@@ -26,7 +26,7 @@ In Obsidian, go to **Settings → Community Plugins → Browse** and search for 
 4. Under **Pagecord Blog Connections**, click the **+** icon
 5. Enter a blog name and API key, then click **Save**
 
-Use the edit and delete icons beside a connection to update or remove it. Deleting a connection only removes it from Obsidian settings; it does not delete the Pagecord blog.
+Click a connection to update it, or use the delete control beside it to remove it. Deleting a connection only removes it from Obsidian settings; it does not delete the Pagecord blog.
 
 ## Commands
 

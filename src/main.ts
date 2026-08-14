@@ -1,4 +1,4 @@
-import { Plugin, PluginSettingTab, App, ButtonComponent, Modal, Setting, SettingGroup } from "obsidian";
+import { Plugin, PluginSettingTab, App, ButtonComponent, Modal, Setting, type SettingDefinitionItem } from "obsidian";
 import { getConfiguredBlogs, normalizeSettings, PagecordBlogSettings, PagecordSettings } from "./api";
 import { publishPost } from "./publish";
 
@@ -66,60 +66,34 @@ class PagecordSettingTab extends PluginSettingTab {
 		this.plugin = plugin;
 	}
 
-	display() {
-		const { containerEl } = this;
-		containerEl.empty();
-		const heading = "Pagecord Blog Connections";
-		const emptyMessage = "No blog connections have been added. Add a connection to publish notes to Pagecord.";
-
-		new Setting(containerEl)
-			.setName(heading)
-			.setHeading()
-			.addExtraButton((button) =>
-				button
-					.setIcon("plus")
-					.setTooltip("Add blog connection")
-					.onClick(() => {
+	getSettingDefinitions(): SettingDefinitionItem[] {
+		return [
+			{
+				type: "list",
+				heading: "Blog connections",
+				emptyState: "No blog connections have been added. Add a connection to publish notes to Pagecord.",
+				addItem: {
+					name: "Add blog connection",
+					action: () => {
 						this.openBlogModal();
-					})
-			);
+					},
+				},
+				onDelete: (index) => {
+					this.openDeleteModal(index);
+				},
+				items: this.plugin.settings.blogs.map((blog) => {
+					const keySuffix = blog.apiKey.trim().slice(-4);
 
-		const blogGroup = new SettingGroup(containerEl);
-
-		if (this.plugin.settings.blogs.length === 0) {
-			blogGroup.addSetting((setting) => {
-				setting.setDesc(emptyMessage);
-			});
-			return;
-		}
-
-		this.plugin.settings.blogs.forEach((blog, index) => {
-			const name = blog.name.trim() || "Untitled blog";
-			const keySuffix = blog.apiKey.trim().slice(-4);
-			const connectionDesc = keySuffix ? apiKeySuffixDescription(keySuffix) : "";
-
-			blogGroup.addSetting((setting) => {
-				setting
-					.setName(name)
-					.setDesc(connectionDesc)
-					.addExtraButton((button) =>
-						button
-							.setIcon("pencil")
-							.setTooltip("Edit blog connection")
-							.onClick(() => {
-								this.openBlogModal(index);
-							})
-					)
-					.addExtraButton((button) =>
-						button
-							.setIcon("trash")
-							.setTooltip("Delete blog connection")
-							.onClick(() => {
-								this.openDeleteModal(index);
-							})
-					);
-			});
-		});
+					return {
+						name: blog.name.trim() || "Untitled blog",
+						desc: keySuffix ? apiKeySuffixDescription(keySuffix) : "",
+						action: (_el: HTMLElement, index: number) => {
+							this.openBlogModal(index);
+						},
+					};
+				}),
+			},
+		];
 	}
 
 	private openBlogModal(index?: number) {
@@ -136,7 +110,7 @@ class PagecordSettingTab extends PluginSettingTab {
 
 			await this.plugin.saveSettings();
 			this.plugin.refreshPublishCommands();
-			this.display();
+			this.update();
 		}).open();
 	}
 
@@ -153,7 +127,7 @@ class PagecordSettingTab extends PluginSettingTab {
 		this.plugin.settings.blogs.splice(index, 1);
 		await this.plugin.saveSettings();
 		this.plugin.refreshPublishCommands();
-		this.display();
+		this.update();
 	}
 }
 
@@ -266,7 +240,7 @@ class DeleteConnectionModal extends Modal {
 			.addButton((button) =>
 				button
 					.setButtonText("Delete connection")
-					.setWarning()
+					.setDestructive()
 					.setCta()
 					.onClick(async () => {
 						this.close();

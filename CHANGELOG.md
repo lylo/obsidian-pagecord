@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.3.0
+
+- Settings now use Obsidian's declarative settings API, so blog connections are found by Obsidian's settings search.
+- Edit a connection by clicking its row. Delete moved to the list's own delete control, which also responds to the Delete key.
+- Requires Obsidian 1.13.0 or later. Earlier versions continue to be offered 1.2.1.
+
 ## 1.2.1
 
 - Fixed an unquoted `published_at` timestamp in frontmatter being sent in a format the API rejects. It is now sent as ISO 8601.

@@ -1,8 +1,8 @@
 {
 	"id": "pagecord",
 	"name": "Pagecord",
-	"version": "1.2.1",
-	"minAppVersion": "1.11.0",
+	"version": "1.3.0",
+	"minAppVersion": "1.13.0",
 	"description": "Publish notes to your Pagecord blog.",
 	"author": "Pagecord",
 	"authorUrl": "https://pagecord.com",
