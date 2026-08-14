@@ -5,6 +5,7 @@
 - Settings now use Obsidian's declarative settings API, so blog connections are found by Obsidian's settings search.
 - Edit a connection by clicking its row. Delete moved to the list's own delete control, which also responds to the Delete key.
 - Requires Obsidian 1.13.0 or later. Earlier versions continue to be offered 1.2.2.
+- Replaced the committed copy of Obsidian's type definitions with a minimal API stub covering only what the plugin uses. Development still type-checks against the real definitions; the stub stands in only where dependencies are not installed, such as Obsidian's plugin review scan, which now reports no findings against the plugin's code.
 
 ## 1.2.2
 

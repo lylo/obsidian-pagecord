@@ -5,8 +5,7 @@
 	"scripts": {
 		"build": "node esbuild.config.mjs",
 		"test": "vitest run",
-		"types:sync": "cp node_modules/obsidian/obsidian.d.ts types/obsidian.d.ts",
-		"types:check": "cmp -s node_modules/obsidian/obsidian.d.ts types/obsidian.d.ts || (echo \"types/obsidian.d.ts is stale \u2014 run npm run types:sync\" && exit 1)"
+		"review": "tsc -p tsconfig.review.json --noEmit && eslint --config review.eslint.config.mjs src/main.ts src/api.ts src/publish.ts types/obsidian.d.ts"
 	},
 	"devDependencies": {
 		"@types/node": "^22.0.0",
