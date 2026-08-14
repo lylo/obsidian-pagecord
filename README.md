@@ -10,7 +10,7 @@ Write in Obsidian, hit a command, done. Supports images, PDFs, frontmatter, and 
 
 - Publish notes as blog posts or drafts
 - Update existing posts (tracks via frontmatter)
-- Upload embedded images automatically
+- Upload embedded images and PDFs automatically
 - Publish to multiple configured Pagecord blogs
 - Read title, slug, tags, and more from frontmatter
 
@@ -69,7 +69,7 @@ After publishing, the plugin adds metadata to your frontmatter automatically:
 
 - `pagecord_token` – links the note to the Pagecord post so future publishes update it instead of creating a duplicate
 - `pagecord_blog_fingerprint` – links the note to the configured Pagecord blog used for publishing. It does not contain your API key
-- `pagecord_attachments` – caches uploaded image hashes so unchanged images aren't re-uploaded
+- `pagecord_attachments` – records each uploaded file against its vault path, so unchanged files aren't uploaded again
 - `status` – records the last status used by the publish command
 
 These fields are managed by the plugin. Deleting `pagecord_token` will cause the next publish to create a new post. Existing notes published before multi-blog support still work; the plugin adds `pagecord_blog_fingerprint` after the next successful update.
