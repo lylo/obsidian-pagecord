@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.2
+
+- No functional change. The Obsidian type definitions are now committed to the repository and mapped in `tsconfig.json`, so plugin review can resolve them without installing the plugin's dependencies. Without that, every value imported from Obsidian read as an untyped error and review reported 208 spurious warnings.
+- Pinned the Obsidian dependency to an exact version, so the committed copy always matches what is installed.
+
 ## 1.2.1
 
 - Fixed an unquoted `published_at` timestamp in frontmatter being sent in a format the API rejects. It is now sent as ISO 8601.
