@@ -1,6 +1,7 @@
 {
 	"compilerOptions": {
 		"baseUrl": ".",
+		"paths": { "obsidian": ["./types/obsidian.d.ts"] },
 		"target": "ES2022",
 		"module": "ESNext",
 		"moduleResolution": "bundler",

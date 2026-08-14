@@ -4,7 +4,12 @@
 
 - Settings now use Obsidian's declarative settings API, so blog connections are found by Obsidian's settings search.
 - Edit a connection by clicking its row. Delete moved to the list's own delete control, which also responds to the Delete key.
-- Requires Obsidian 1.13.0 or later. Earlier versions continue to be offered 1.2.1.
+- Requires Obsidian 1.13.0 or later. Earlier versions continue to be offered 1.2.2.
+
+## 1.2.2
+
+- No functional change. The Obsidian type definitions are now committed to the repository and mapped in `tsconfig.json`, so plugin review can resolve them without installing the plugin's dependencies. Without that, every value imported from Obsidian read as an untyped error and review reported 208 spurious warnings.
+- Pinned the Obsidian dependency to an exact version, so the committed copy always matches what is installed.
 
 ## 1.2.1
 

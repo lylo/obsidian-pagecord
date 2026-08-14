@@ -9,7 +9,7 @@ export default [
 		// Only the plugin sources are type-checked here, matching what plugin
 		// review reports. The config files sit outside tsconfig's `include`, so
 		// type-aware rules cannot resolve them at all.
-		ignores: ["main.js", "*.config.ts", "*.config.mjs", "src/__mocks__/**", "**/*.test.ts"],
+		ignores: ["main.js", "*.config.ts", "*.config.mjs", "types/**", "src/__mocks__/**", "**/*.test.ts"],
 	},
 	...obsidianmd.configs.recommended,
 	{
