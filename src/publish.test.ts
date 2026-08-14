@@ -292,6 +292,38 @@ describe("publishPost blog fingerprint", () => {
 		expect(noticeMessages.messages).toContain("Unpublished from Personal");
 	});
 
+	it("sends an unquoted YAML timestamp as ISO 8601", async () => {
+		const app = createApp({ published_at: new Date("2025-01-15T10:00:00Z") });
+		const createPost = vi.spyOn(PagecordAPI.prototype, "createPost").mockResolvedValue({
+			token: "new-token",
+			title: "Hello",
+			slug: "hello",
+			status: "published",
+		});
+
+		await publishPost(app, BLOG, "published");
+
+		expect(createPost).toHaveBeenCalledWith(expect.objectContaining({
+			published_at: "2025-01-15T10:00:00.000Z",
+		}));
+	});
+
+	it("does not send an object-valued frontmatter field as [object Object]", async () => {
+		const app = createApp({ slug: { nested: "value" } });
+		const createPost = vi.spyOn(PagecordAPI.prototype, "createPost").mockResolvedValue({
+			token: "new-token",
+			title: "Hello",
+			slug: "hello",
+			status: "published",
+		});
+
+		await publishPost(app, BLOG, "published");
+
+		expect(createPost).toHaveBeenCalledWith(expect.objectContaining({
+			slug: '{"nested":"value"}',
+		}));
+	});
+
 	it("writes the blog fingerprint when creating a post", async () => {
 		const frontmatter: Record<string, unknown> = {};
 		const app = createApp(frontmatter);

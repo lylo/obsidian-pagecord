@@ -277,8 +277,8 @@ class DeleteConnectionModal extends Modal {
 }
 
 function apiKeySuffixDescription(suffix: string): DocumentFragment {
-	const fragment = activeDocument.createDocumentFragment();
-	fragment.appendText("API key ending in ");
-	fragment.createEl("strong", { text: suffix });
-	return fragment;
+	return createFragment((fragment) => {
+		fragment.appendText("API key ending in ");
+		fragment.createEl("strong", { text: suffix });
+	});
 }

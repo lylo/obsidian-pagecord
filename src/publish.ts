@@ -60,7 +60,12 @@ function unquoteFrontmatterString(value: string): string {
 function frontmatterString(value: unknown): string | undefined {
 	if (value == null) return undefined;
 	if (typeof value === "string") return unquoteFrontmatterString(value);
-	return String(value);
+	if (typeof value === "number" || typeof value === "boolean") return String(value);
+	// An unquoted YAML timestamp arrives as a Date, and ISO is the format the
+	// API wants. Anything else would stringify to "[object Object]", so
+	// serialise it and let the API reject it on its merits.
+	if (value instanceof Date) return value.toISOString();
+	return JSON.stringify(value) ?? "";
 }
 
 function frontmatterBoolean(value: unknown): boolean | undefined {

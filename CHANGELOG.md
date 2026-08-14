@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.1
+
+- Fixed an unquoted `published_at` timestamp in frontmatter being sent in a format the API rejects. It is now sent as ISO 8601.
+- Fixed an object-valued frontmatter field being sent as `[object Object]`.
+- Switched the settings description to Obsidian's `createFragment` helper, and aligned the lint setup with Obsidian's recommended ruleset so plugin review findings reproduce locally.
+
 ## 1.2.0
 
 - Added PDF support. Embedded PDFs are now uploaded to Pagecord and published as attachments with a page preview and a download link, instead of being left as unrendered Markdown.
