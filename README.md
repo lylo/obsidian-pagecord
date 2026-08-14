@@ -4,7 +4,7 @@ Install Pagecord from the Obsidian community plugin directory: https://community
 
 Publish notes from Obsidian to your [Pagecord](https://pagecord.com) blog.
 
-Write in Obsidian, hit a command, done. Supports images, frontmatter, and drafts.
+Write in Obsidian, hit a command, done. Supports images, PDFs, frontmatter, and drafts.
 
 ## Features
 
@@ -74,18 +74,20 @@ After publishing, the plugin adds metadata to your frontmatter automatically:
 
 These fields are managed by the plugin. Deleting `pagecord_token` will cause the next publish to create a new post. Existing notes published before multi-blog support still work; the plugin adds `pagecord_blog_fingerprint` after the next successful update.
 
-## Images
+## Images and PDFs
 
-For images you want Pagecord to host, drag the image into Obsidian or otherwise add it as a local file in your vault, then embed it in the note. Both Obsidian image syntaxes are supported:
+For files you want Pagecord to host, drag the file into Obsidian or otherwise add it as a local file in your vault, then embed it in the note. Both Obsidian embed syntaxes are supported:
 
-- `![[photo.jpg]]` (wiki-style)
-- `![](photo.jpg)` (markdown-style)
+- `![[photo.jpg]]`, `![[report.pdf]]` (wiki-style)
+- `![](photo.jpg)`, `![](report.pdf)` (markdown-style)
 
-Vault-local images are uploaded to Pagecord and embedded in the post automatically. The plugin sends each file to the Pagecord attachments API, receives an `attachable_sgid`, and replaces the Markdown image reference with the Action Text attachment tag Pagecord needs.
+Vault-local files are uploaded to Pagecord and embedded in the post automatically. The plugin sends each file to the Pagecord attachments API, receives an `attachable_sgid`, and replaces the Markdown reference with the Action Text attachment tag Pagecord needs. PDFs are published as attachments showing a preview of the first page, a download link, and the file size.
+
+Obsidian's display modifiers are ignored, so `![[report.pdf#page=2]]` and `![[photo.png|300]]` upload the whole file and are rendered by Pagecord at its own size.
 
 External Markdown images, such as `![](https://example.com/photo.jpg)`, are left as normal Markdown image tags. They will reference the external image URL and are not uploaded to Pagecord.
 
-Supported upload formats: JPEG, PNG, GIF, WebP.
+Supported upload formats: JPEG, PNG, GIF, WebP, PDF.
 
 ## Building from Source
 
@@ -100,7 +102,7 @@ Copy `main.js` and `manifest.json` to your vault's `.obsidian/plugins/pagecord/`
 
 ## Local Development
 
-The plugin sends requests to `https://api.pagecord.com` by default. To point a local test install at another Pagecord API host, add a `baseUrl` value to the plugin's Obsidian data file.
+The plugin sends requests to `https://api.pagecord.com` by default. To point a connection at another Pagecord API host, add a `baseUrl` value to it in the plugin's Obsidian data file.
 
 The data file lives inside your vault:
 
@@ -108,21 +110,25 @@ The data file lives inside your vault:
 <vault>/.obsidian/plugins/pagecord/data.json
 ```
 
-For a local Pagecord environment, it should look like this:
+`baseUrl` is set per connection, so a local blog can sit alongside your real ones. Each connection gets its own command in the palette, which is how you choose where a note goes:
 
 ```json
 {
-	"baseUrl": "http://api.localhost:3000",
 	"blogs": [
 		{
-			"name": "Local test blog",
+			"name": "My blog",
 			"apiKey": "your-api-key"
+		},
+		{
+			"name": "Local test blog",
+			"apiKey": "your-local-api-key",
+			"baseUrl": "http://api.localhost:3000"
 		}
 	]
 }
 ```
 
-If Obsidian has already saved your Pagecord settings, keep the existing `blogs` array and add only the top-level `baseUrl` field.
+A top-level `baseUrl` still works and applies to every connection that does not set its own. Obsidian reads this file when the plugin loads, so reload the plugin or restart Obsidian after editing it by hand.
 
 ## License
 

@@ -2,16 +2,20 @@ import { Notice, type App } from "obsidian";
 import { afterEach, describe, it, expect, vi } from "vitest";
 import { ApiError, PagecordAPI, PagecordBlogSettings } from "./api";
 import {
-	IMAGE_EXTENSIONS,
-	WIKILINK_IMAGE,
-	MARKDOWN_IMAGE,
+	ATTACHMENT_EXTENSIONS,
+	WIKILINK_EMBED,
+	MARKDOWN_EMBED,
 	blogFingerprint,
 	hashArrayBuffer,
 	publishPost,
 	resolveTitle,
 } from "./publish";
 
-function createApp(frontmatter: Record<string, unknown>, content = "# Hello"): App {
+function createApp(
+	frontmatter: Record<string, unknown>,
+	content = "# Hello",
+	linked?: { extension: string; path: string; name: string },
+): App {
 	const file = { basename: "Hello", path: "Hello.md" };
 
 	return {
@@ -20,10 +24,11 @@ function createApp(frontmatter: Record<string, unknown>, content = "# Hello"): A
 		},
 		metadataCache: {
 			getFileCache: () => ({ frontmatter }),
-			getFirstLinkpathDest: () => null,
+			getFirstLinkpathDest: () => linked ?? null,
 		},
 		vault: {
 			read: async () => content,
+			readBinary: async () => new TextEncoder().encode("file data").buffer,
 		},
 		fileManager: {
 			processFrontMatter: async (_file: unknown, callback: (fm: Record<string, unknown>) => void) => {
@@ -41,61 +46,91 @@ afterEach(() => {
 	noticeMessages.messages = [];
 });
 
-describe("IMAGE_EXTENSIONS", () => {
-	it.each(["photo.jpg", "photo.jpeg", "photo.JPG", "image.png", "anim.gif", "pic.webp"])(
+describe("ATTACHMENT_EXTENSIONS", () => {
+	it.each(["photo.jpg", "photo.jpeg", "photo.JPG", "image.png", "anim.gif", "pic.webp", "report.pdf", "REPORT.PDF"])(
 		"matches %s",
-		(name) => expect(IMAGE_EXTENSIONS.test(name)).toBe(true),
+		(name) => expect(ATTACHMENT_EXTENSIONS.test(name)).toBe(true),
 	);
 
-	it.each(["file.pdf", "doc.txt", "image.svg", "photo.jpg.bak", "noext"])(
+	it.each(["doc.txt", "image.svg", "notes.pages", "photo.jpg.bak", "noext"])(
 		"rejects %s",
-		(name) => expect(IMAGE_EXTENSIONS.test(name)).toBe(false),
+		(name) => expect(ATTACHMENT_EXTENSIONS.test(name)).toBe(false),
 	);
 });
 
-describe("WIKILINK_IMAGE", () => {
+describe("WIKILINK_EMBED", () => {
 	it("matches ![[filename.jpg]]", () => {
-		const matches = [...'Check this ![[photo.jpg]] out'.matchAll(new RegExp(WIKILINK_IMAGE))];
+		const matches = [...'Check this ![[photo.jpg]] out'.matchAll(new RegExp(WIKILINK_EMBED))];
 		expect(matches).toHaveLength(1);
 		expect(matches[0][1]).toBe("photo.jpg");
 	});
 
-	it("matches multiple images", () => {
+	it("matches multiple embeds", () => {
 		const content = "![[a.png]] text ![[b.gif]]";
-		const matches = [...content.matchAll(new RegExp(WIKILINK_IMAGE))];
+		const matches = [...content.matchAll(new RegExp(WIKILINK_EMBED))];
 		expect(matches).toHaveLength(2);
 		expect(matches[0][1]).toBe("a.png");
 		expect(matches[1][1]).toBe("b.gif");
 	});
 
-	it("does not match non-image wikilinks", () => {
-		const content = "![[document.pdf]]";
-		const matches = [...content.matchAll(new RegExp(WIKILINK_IMAGE))].filter(m =>
-			IMAGE_EXTENSIONS.test(m[1]),
+	it("matches a PDF embed", () => {
+		const matches = [...'![[document.pdf]]'.matchAll(new RegExp(WIKILINK_EMBED))];
+		expect(matches).toHaveLength(1);
+		expect(ATTACHMENT_EXTENSIONS.test(matches[0][1])).toBe(true);
+	});
+
+	it("does not match unsupported wikilinks", () => {
+		const content = "![[spreadsheet.xlsx]]";
+		const matches = [...content.matchAll(new RegExp(WIKILINK_EMBED))].filter(m =>
+			ATTACHMENT_EXTENSIONS.test(m[1]),
 		);
 		expect(matches).toHaveLength(0);
 	});
 });
 
-describe("MARKDOWN_IMAGE", () => {
+describe("MARKDOWN_EMBED", () => {
 	it("matches ![alt](path.jpg)", () => {
-		const matches = [...'![alt text](images/photo.jpg)'.matchAll(new RegExp(MARKDOWN_IMAGE))];
+		const matches = [...'![alt text](images/photo.jpg)'.matchAll(new RegExp(MARKDOWN_EMBED))];
 		expect(matches).toHaveLength(1);
 		expect(matches[0][1]).toBe("alt text");
 		expect(matches[0][2]).toBe("images/photo.jpg");
 	});
 
 	it("matches images with empty alt text", () => {
-		const matches = [...'![](photo.png)'.matchAll(new RegExp(MARKDOWN_IMAGE))];
+		const matches = [...'![](photo.png)'.matchAll(new RegExp(MARKDOWN_EMBED))];
 		expect(matches).toHaveLength(1);
 		expect(matches[0][1]).toBe("");
 		expect(matches[0][2]).toBe("photo.png");
 	});
 
 	it("matches URL-encoded paths", () => {
-		const matches = [...'![](my%20photo.jpg)'.matchAll(new RegExp(MARKDOWN_IMAGE))];
+		const matches = [...'![](my%20photo.jpg)'.matchAll(new RegExp(MARKDOWN_EMBED))];
 		expect(matches).toHaveLength(1);
 		expect(decodeURIComponent(matches[0][2])).toBe("my photo.jpg");
+	});
+
+	it("separates a quoted title from the path", () => {
+		const matches = [...'![A boat](photo.jpg "Sunset on the Mekong")'.matchAll(new RegExp(MARKDOWN_EMBED))];
+		expect(matches).toHaveLength(1);
+		expect(matches[0][1]).toBe("A boat");
+		expect(matches[0][2]).toBe("photo.jpg");
+		expect(matches[0][3]).toBe("Sunset on the Mekong");
+	});
+
+	it("leaves the title undefined when absent", () => {
+		const matches = [...'![A boat](photo.jpg)'.matchAll(new RegExp(MARKDOWN_EMBED))];
+		expect(matches[0][2]).toBe("photo.jpg");
+		expect(matches[0][3]).toBeUndefined();
+	});
+
+	it("keeps unquoted spaces in the path", () => {
+		const matches = [...'![](my photo.jpg)'.matchAll(new RegExp(MARKDOWN_EMBED))];
+		expect(matches[0][2]).toBe("my photo.jpg");
+	});
+
+	it("still recognises the image when a title is given", () => {
+		const matches = [...'![A boat](photo.jpg "A caption")'.matchAll(new RegExp(MARKDOWN_EMBED))];
+		expect(ATTACHMENT_EXTENSIONS.test(matches[0][2])).toBe(true);
 	});
 });
 
@@ -292,7 +327,182 @@ describe("publishPost blog fingerprint", () => {
 
 		expect(uploadAttachment).not.toHaveBeenCalled();
 		expect(createPost).toHaveBeenCalledWith(expect.objectContaining({ content }));
-		expect(noticeMessages.messages).not.toContain("Image not found: photo.webp");
+		expect(noticeMessages.messages).not.toContain("File not found: photo.webp");
+	});
+
+	it("uploads an embedded PDF and replaces it with an attachment tag", async () => {
+		const frontmatter: Record<string, unknown> = {};
+		const app = createApp(frontmatter, "How does this render?\n\n![[sample.pdf]]", {
+			extension: "pdf",
+			path: "sample.pdf",
+			name: "sample.pdf",
+		});
+		const createPost = vi.spyOn(PagecordAPI.prototype, "createPost").mockResolvedValue({
+			token: "new-token",
+			title: "Hello",
+			slug: "hello",
+			status: "published",
+		});
+		const uploadAttachment = vi.spyOn(PagecordAPI.prototype, "uploadAttachment")
+			.mockResolvedValue({ attachable_sgid: "sgid-1" });
+
+		await publishPost(app, BLOG, "published");
+
+		expect(uploadAttachment).toHaveBeenCalledWith("sample.pdf", "application/pdf", expect.anything());
+		expect(createPost).toHaveBeenCalledWith(expect.objectContaining({
+			content: 'How does this render?\n\n<action-text-attachment sgid="sgid-1"></action-text-attachment>',
+		}));
+		expect(frontmatter.pagecord_attachments).toEqual({
+			"sample.pdf": { hash: expect.any(String), sgid: "sgid-1" },
+		});
+	});
+
+	it("uploads a PDF embedded with a page anchor", async () => {
+		const app = createApp({}, "![[report.pdf#page=2]]", { extension: "pdf", path: "report.pdf", name: "report.pdf" });
+		const createPost = vi.spyOn(PagecordAPI.prototype, "createPost").mockResolvedValue({
+			token: "new-token",
+			title: "Hello",
+			slug: "hello",
+			status: "published",
+		});
+		const uploadAttachment = vi.spyOn(PagecordAPI.prototype, "uploadAttachment")
+			.mockResolvedValue({ attachable_sgid: "sgid-2" });
+
+		await publishPost(app, BLOG, "published");
+
+		expect(uploadAttachment).toHaveBeenCalledWith("report.pdf", "application/pdf", expect.anything());
+		expect(createPost).toHaveBeenCalledWith(expect.objectContaining({
+			content: '<action-text-attachment sgid="sgid-2"></action-text-attachment>',
+		}));
+	});
+
+	it("does not treat a $ in a caption as a substitution pattern", async () => {
+		const app = createApp({}, '![A boat](photo.jpg "Cost $& up")', {
+			extension: "jpg",
+			path: "photo.jpg",
+			name: "photo.jpg",
+		});
+		const createPost = vi.spyOn(PagecordAPI.prototype, "createPost").mockResolvedValue({
+			token: "new-token",
+			title: "Hello",
+			slug: "hello",
+			status: "published",
+		});
+		vi.spyOn(PagecordAPI.prototype, "uploadAttachment").mockResolvedValue({ attachable_sgid: "sgid-1" });
+
+		await publishPost(app, BLOG, "published");
+
+		expect(createPost).toHaveBeenCalledWith(expect.objectContaining({
+			content: '<action-text-attachment sgid="sgid-1" alt="A boat" caption="Cost $&amp; up"></action-text-attachment>',
+		}));
+	});
+
+	it("strips frontmatter from a note with CRLF line endings", async () => {
+		const app = createApp({}, "---\r\ntitle: Windows\r\n---\r\nBody text");
+		const createPost = vi.spyOn(PagecordAPI.prototype, "createPost").mockResolvedValue({
+			token: "new-token",
+			title: "Hello",
+			slug: "hello",
+			status: "published",
+		});
+
+		await publishPost(app, BLOG, "published");
+
+		expect(createPost).toHaveBeenCalledWith(expect.objectContaining({ content: "Body text" }));
+	});
+
+	it("uploads a file embedded twice only once", async () => {
+		const app = createApp({}, "![[photo.png]]\n\nand again\n\n![[photo.png]]", {
+			extension: "png",
+			path: "photo.png",
+			name: "photo.png",
+		});
+		const createPost = vi.spyOn(PagecordAPI.prototype, "createPost").mockResolvedValue({
+			token: "new-token",
+			title: "Hello",
+			slug: "hello",
+			status: "published",
+		});
+		const uploadAttachment = vi.spyOn(PagecordAPI.prototype, "uploadAttachment")
+			.mockResolvedValue({ attachable_sgid: "sgid-1" });
+
+		await publishPost(app, BLOG, "published");
+
+		expect(uploadAttachment).toHaveBeenCalledTimes(1);
+		expect(createPost).toHaveBeenCalledWith(expect.objectContaining({
+			content: '<action-text-attachment sgid="sgid-1"></action-text-attachment>\n\nand again\n\n'
+				+ '<action-text-attachment sgid="sgid-1"></action-text-attachment>',
+		}));
+	});
+
+	it("caches an attachment against its vault path, not its name", async () => {
+		const frontmatter: Record<string, unknown> = {};
+		const app = createApp(frontmatter, "![[photo.png]]", {
+			extension: "png",
+			path: "images/photo.png",
+			name: "photo.png",
+		});
+		vi.spyOn(PagecordAPI.prototype, "createPost").mockResolvedValue({
+			token: "new-token",
+			title: "Hello",
+			slug: "hello",
+			status: "published",
+		});
+		const uploadAttachment = vi.spyOn(PagecordAPI.prototype, "uploadAttachment")
+			.mockResolvedValue({ attachable_sgid: "sgid-1" });
+
+		await publishPost(app, BLOG, "published");
+
+		expect(uploadAttachment).toHaveBeenCalledWith("photo.png", "image/png", expect.anything());
+		expect(frontmatter.pagecord_attachments).toEqual({
+			"images/photo.png": { hash: expect.any(String), sgid: "sgid-1" },
+		});
+	});
+
+	it("reuses a cache entry written under the older filename key", async () => {
+		const hash = await hashArrayBuffer(new TextEncoder().encode("file data").buffer);
+		const frontmatter: Record<string, unknown> = {
+			pagecord_attachments: { "photo.png": { hash, sgid: "old-sgid" } },
+		};
+		const app = createApp(frontmatter, "![[photo.png]]", {
+			extension: "png",
+			path: "images/photo.png",
+			name: "photo.png",
+		});
+		const createPost = vi.spyOn(PagecordAPI.prototype, "createPost").mockResolvedValue({
+			token: "new-token",
+			title: "Hello",
+			slug: "hello",
+			status: "published",
+		});
+		const uploadAttachment = vi.spyOn(PagecordAPI.prototype, "uploadAttachment");
+
+		await publishPost(app, BLOG, "published");
+
+		expect(uploadAttachment).not.toHaveBeenCalled();
+		expect(createPost).toHaveBeenCalledWith(expect.objectContaining({
+			content: '<action-text-attachment sgid="old-sgid"></action-text-attachment>',
+		}));
+		expect(frontmatter.pagecord_attachments).toEqual({
+			"images/photo.png": { hash, sgid: "old-sgid" },
+		});
+	});
+
+	it("clears the attachment cache when the last embed is removed", async () => {
+		const frontmatter: Record<string, unknown> = {
+			pagecord_attachments: { "photo.png": { hash: "abc", sgid: "old-sgid" } },
+		};
+		const app = createApp(frontmatter, "Just words now.");
+		vi.spyOn(PagecordAPI.prototype, "createPost").mockResolvedValue({
+			token: "new-token",
+			title: "Hello",
+			slug: "hello",
+			status: "published",
+		});
+
+		await publishPost(app, BLOG, "published");
+
+		expect(frontmatter).not.toHaveProperty("pagecord_attachments");
 	});
 
 	it("shows when a draft is created", async () => {

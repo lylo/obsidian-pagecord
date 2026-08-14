@@ -3,10 +3,13 @@ import { PagecordAPI, PagecordBlogSettings, ApiError, handleApiError } from "./a
 
 class UploadError extends Error {}
 
-export const IMAGE_EXTENSIONS = /\.(jpe?g|png|gif|webp)$/i;
-export const WIKILINK_IMAGE = /!\[\[([^\]]+?)\]\]/g;
-export const MARKDOWN_IMAGE = /!\[([^\]]*)\]\(([^)]+?)\)/g;
-const REMOTE_IMAGE_URL = /^(?:https?:)?\/\//i;
+export const ATTACHMENT_EXTENSIONS = /\.(jpe?g|png|gif|webp|pdf)$/i;
+export const WIKILINK_EMBED = /!\[\[([^\]]+?)\]\]/g;
+// ![alt](photo.jpg "A caption") — the alt describes the image, the optional
+// title captions it. A path containing parens is not matched; use a wikilink,
+// which has no such limit.
+export const MARKDOWN_EMBED = /!\[([^\]]*)\]\(([^)"]+?)(?:\s+"([^"]*)")?\)/g;
+const REMOTE_URL = /^(?:https?:)?\/\//i;
 
 const CONTENT_TYPES: Record<string, string> = {
 	jpg: "image/jpeg",
@@ -14,6 +17,7 @@ const CONTENT_TYPES: Record<string, string> = {
 	png: "image/png",
 	gif: "image/gif",
 	webp: "image/webp",
+	pdf: "application/pdf",
 };
 
 interface AttachmentCache {
@@ -35,16 +39,17 @@ interface PagecordFrontmatter {
 	pagecord_attachments?: AttachmentCache;
 }
 
+async function sha256Hex(data: BufferSource): Promise<string> {
+	const digest = await crypto.subtle.digest("SHA-256", data);
+	return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
 export async function hashArrayBuffer(data: ArrayBuffer): Promise<string> {
-	const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-	const hashArray = Array.from(new Uint8Array(hashBuffer));
-	return hashArray.map(b => b.toString(16).padStart(2, "0")).join("").slice(0, 16);
+	return (await sha256Hex(data)).slice(0, 16);
 }
 
 export async function blogFingerprint(apiKey: string): Promise<string> {
-	const hashBuffer = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(apiKey));
-	const hashArray = Array.from(new Uint8Array(hashBuffer));
-	return hashArray.map(b => b.toString(16).padStart(2, "0")).join("").slice(0, 12);
+	return (await sha256Hex(new TextEncoder().encode(apiKey))).slice(0, 12);
 }
 
 function unquoteFrontmatterString(value: string): string {
@@ -120,12 +125,12 @@ export async function publishPost(app: App, blog: PagecordBlogSettings, status: 
 	}
 
 	let content = await app.vault.read(file);
-	content = content.replace(/^---\n[\s\S]*?\n---\n/, "");
+	content = content.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n/, "");
 
 	const api = new PagecordAPI(blog);
 	let updatedAttachments: AttachmentCache;
 	try {
-		const result = await processImages(app, api, file, content, cachedAttachments);
+		const result = await processEmbeds(app, api, file, content, cachedAttachments);
 		content = result.content;
 		updatedAttachments = result.attachments;
 	} catch (error: unknown) {
@@ -145,8 +150,8 @@ export async function publishPost(app: App, blog: PagecordBlogSettings, status: 
 		...(slug && { slug }),
 		...(tags && { tags }),
 		...(canonicalUrl && { canonical_url: canonicalUrl }),
-		...(publishedAt && { published_at: String(publishedAt) }),
-		...(hidden != null && { hidden: Boolean(hidden) }),
+		...(publishedAt && { published_at: publishedAt }),
+		...(hidden != null && { hidden }),
 		...(locale && { locale }),
 	};
 
@@ -165,12 +170,13 @@ export async function publishPost(app: App, blog: PagecordBlogSettings, status: 
 			fm.pagecord_token = token;
 			fm.pagecord_blog_fingerprint = fingerprint;
 			fm.status = status;
-		});
-		if (Object.keys(updatedAttachments).length > 0) {
-			await app.fileManager.processFrontMatter(file, (fm: Record<string, unknown>) => {
+
+			if (Object.keys(updatedAttachments).length > 0) {
 				fm.pagecord_attachments = updatedAttachments;
-			});
-		}
+			} else {
+				delete fm.pagecord_attachments;
+			}
+		});
 	} catch (error: unknown) {
 		if (error instanceof ApiError && error.status === 404 && pagecordToken && pagecordBlogFingerprint) {
 			await app.fileManager.processFrontMatter(file, (fm: Record<string, unknown>) => {
@@ -196,39 +202,48 @@ function publishNoticeMessage(
 	return previousStatus === "draft" ? `Published to ${blogName}` : `Updated post on ${blogName}`;
 }
 
-async function processImages(
+function escapeAttribute(value: string): string {
+	return value.replace(/&/g, "&amp;").replace(/"/g, "&quot;");
+}
+
+async function processEmbeds(
 	app: App, api: PagecordAPI, file: TFile, content: string, cache: AttachmentCache,
 ): Promise<{ content: string; attachments: AttachmentCache }> {
-	const images: { match: string; filename: string; path: string }[] = [];
+	const embeds: { match: string; filename: string; path: string; alt: string; title: string }[] = [];
 
-	for (const m of content.matchAll(WIKILINK_IMAGE)) {
-		const filename = m[1];
-		if (IMAGE_EXTENSIONS.test(filename)) {
-			images.push({ match: m[0], filename, path: filename });
+	for (const m of content.matchAll(WIKILINK_EMBED)) {
+		// Obsidian appends display modifiers to the link: ![[report.pdf#page=2]],
+		// ![[photo.png|300]]. Pagecord honours neither, so upload the file itself.
+		const filename = m[1].split(/[#|]/)[0];
+		if (ATTACHMENT_EXTENSIONS.test(filename)) {
+			embeds.push({ match: m[0], filename, path: filename, alt: "", title: "" });
 		}
 	}
 
-	for (const m of content.matchAll(MARKDOWN_IMAGE)) {
-		if (REMOTE_IMAGE_URL.test(m[2])) continue;
+	for (const m of content.matchAll(MARKDOWN_EMBED)) {
+		if (REMOTE_URL.test(m[2])) continue;
 
 		const path = decodeURIComponent(m[2]);
-		if (IMAGE_EXTENSIONS.test(path)) {
+		if (ATTACHMENT_EXTENSIONS.test(path)) {
 			const filename = path.split("/").pop() || path;
-			images.push({ match: m[0], filename, path });
+			embeds.push({ match: m[0], filename, path, alt: m[1], title: m[3] || "" });
 		}
 	}
 
 	const attachments: AttachmentCache = {};
 
-	for (const img of images) {
-		const linked = app.metadataCache.getFirstLinkpathDest(img.path, file.path);
+	for (const embed of embeds) {
+		const linked = app.metadataCache.getFirstLinkpathDest(embed.path, file.path);
 		if (!linked) {
-			throw new UploadError(`Image not found: ${img.filename}`);
+			throw new UploadError(`File not found: ${embed.filename}`);
 		}
 
 		const data = await app.vault.readBinary(linked);
 		const hash = await hashArrayBuffer(data);
-		const cached = cache[img.filename];
+		// Keyed by vault path, so two files sharing a name don't share an sgid.
+		// `cache[embed.filename]` is the key notes published before that change
+		// carry; reading it keeps them from re-uploading once.
+		const cached = attachments[linked.path] ?? cache[linked.path] ?? cache[embed.filename];
 
 		let sgid: string;
 		if (cached && cached.hash === hash) {
@@ -236,15 +251,18 @@ async function processImages(
 		} else {
 			const ext = linked.extension.toLowerCase();
 			const contentType = CONTENT_TYPES[ext] || "application/octet-stream";
-			const attachment = await api.uploadAttachment(img.filename, contentType, data);
+			const attachment = await api.uploadAttachment(linked.name, contentType, data);
 			sgid = attachment.attachable_sgid;
 		}
 
-		attachments[img.filename] = { hash, sgid };
-		content = content.replace(
-			img.match,
-			`<action-text-attachment sgid="${sgid}"></action-text-attachment>`
-		);
+		const alt = embed.alt ? ` alt="${escapeAttribute(embed.alt)}"` : "";
+		const caption = embed.title ? ` caption="${escapeAttribute(embed.title)}"` : "";
+		const tag = `<action-text-attachment sgid="${sgid}"${alt}${caption}></action-text-attachment>`;
+
+		attachments[linked.path] = { hash, sgid };
+		// Replacing with a function, so a "$" in a caption is not read as a
+		// substitution pattern.
+		content = content.replace(embed.match, () => tag);
 	}
 
 	return { content, attachments };

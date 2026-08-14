@@ -1,4 +1,4 @@
-import { Plugin, PluginSettingTab, App, ButtonComponent, Modal, Setting, SettingGroup, activeDocument } from "obsidian";
+import { Plugin, PluginSettingTab, App, ButtonComponent, Modal, Setting, SettingGroup } from "obsidian";
 import { getConfiguredBlogs, normalizeSettings, PagecordBlogSettings, PagecordSettings } from "./api";
 import { publishPost } from "./publish";
 
@@ -50,7 +50,7 @@ export default class PagecordPlugin extends Plugin {
 			checkCallback: (checking) => {
 				if (!this.app.workspace.getActiveFile()) return false;
 				if (!checking) {
-					void publishPost(this.app, { ...blog, baseUrl: this.settings.baseUrl }, status);
+					void publishPost(this.app, { baseUrl: this.settings.baseUrl, ...blog }, status);
 				}
 				return true;
 			},
@@ -164,7 +164,7 @@ class BlogConnectionModal extends Modal {
 
 	constructor(
 		app: App,
-		blog: PagecordBlogSettings,
+		private blog: PagecordBlogSettings,
 		private onSave: (blog: PagecordBlogSettings) => Promise<void>,
 	) {
 		super(app);
@@ -220,6 +220,7 @@ class BlogConnectionModal extends Modal {
 						if (!this.canSave()) return;
 						this.close();
 						await this.onSave({
+							...this.blog,
 							name: this.name.trim(),
 							apiKey: this.apiKey.trim(),
 						});

@@ -58,6 +58,21 @@ describe("normalizeSettings", () => {
 			{ name: "Work", apiKey: "key-2" },
 		]);
 	});
+
+	it("keeps a per-blog baseUrl", () => {
+		const baseUrl = ["http:", "", "api.localhost:3000"].join("/");
+		const settings = normalizeSettings({
+			blogs: [
+				{ name: "Personal", apiKey: "key-1" },
+				{ name: "Local", apiKey: "key-2", baseUrl },
+			],
+		});
+
+		expect(settings.blogs).toEqual([
+			{ name: "Personal", apiKey: "key-1" },
+			{ name: "Local", apiKey: "key-2", baseUrl },
+		]);
+	});
 });
 
 describe("getConfiguredBlogs", () => {
@@ -75,5 +90,14 @@ describe("getConfiguredBlogs", () => {
 			{ index: 0, blog: { name: "Personal", apiKey: "key-1" } },
 			{ index: 3, blog: { name: "Archive", apiKey: "key-3" } },
 		]);
+	});
+
+	it("carries a per-blog baseUrl through to the publish command", () => {
+		const baseUrl = ["http:", "", "api.localhost:3000"].join("/");
+		const blogs = getConfiguredBlogs({
+			blogs: [{ name: "Local", apiKey: "key-1", baseUrl }],
+		});
+
+		expect(blogs).toEqual([{ index: 0, blog: { name: "Local", apiKey: "key-1", baseUrl } }]);
 	});
 });

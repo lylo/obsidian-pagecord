@@ -112,6 +112,7 @@ export function normalizeSettings(data: Partial<PagecordSettings> | null): Pagec
 		? data.blogs.map((blog) => ({
 			name: typeof blog.name === "string" ? blog.name : "",
 			apiKey: typeof blog.apiKey === "string" ? blog.apiKey : "",
+			...(typeof blog.baseUrl === "string" && { baseUrl: blog.baseUrl }),
 		}))
 		: [];
 
@@ -132,7 +133,7 @@ export function getConfiguredBlogs(settings: PagecordSettings): ConfiguredBlog[]
 
 		if (!name || !apiKey) return [];
 
-		return [{ index, blog: { name, apiKey } }];
+		return [{ index, blog: { name, apiKey, ...(blog.baseUrl && { baseUrl: blog.baseUrl }) } }];
 	});
 }
 
