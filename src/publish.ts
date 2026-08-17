@@ -10,6 +10,10 @@ export const WIKILINK_EMBED = /!\[\[([^\]]+?)\]\]/g;
 // which has no such limit.
 export const MARKDOWN_EMBED = /!\[([^\]]*)\]\(([^)"]+?)(?:\s+"([^"]*)")?\)/g;
 const REMOTE_URL = /^(?:https?:)?\/\//i;
+// An embed inside a fenced code block or inline code span is prose about the
+// syntax, not an attachment. Splitting on this (capturing, so the code
+// survives the join) confines embed scanning to the segments between code.
+const CODE = /(```[\s\S]*?```|`[^`\n]*`)/;
 
 const CONTENT_TYPES: Record<string, string> = {
 	jpg: "image/jpeg",
@@ -214,6 +218,21 @@ function escapeAttribute(value: string): string {
 async function processEmbeds(
 	app: App, api: PagecordAPI, file: TFile, content: string, cache: AttachmentCache,
 ): Promise<{ content: string; attachments: AttachmentCache }> {
+	const attachments: AttachmentCache = {};
+	const segments = content.split(CODE);
+
+	// Even-indexed segments are the text between code; odd-indexed segments are
+	// the code itself, passed through untouched.
+	for (let i = 0; i < segments.length; i += 2) {
+		segments[i] = await processSegment(app, api, file, segments[i], cache, attachments);
+	}
+
+	return { content: segments.join(""), attachments };
+}
+
+async function processSegment(
+	app: App, api: PagecordAPI, file: TFile, content: string, cache: AttachmentCache, attachments: AttachmentCache,
+): Promise<string> {
 	const embeds: { match: string; filename: string; path: string; alt: string; title: string }[] = [];
 
 	for (const m of content.matchAll(WIKILINK_EMBED)) {
@@ -234,8 +253,6 @@ async function processEmbeds(
 			embeds.push({ match: m[0], filename, path, alt: m[1], title: m[3] || "" });
 		}
 	}
-
-	const attachments: AttachmentCache = {};
 
 	for (const embed of embeds) {
 		const linked = app.metadataCache.getFirstLinkpathDest(embed.path, file.path);
@@ -270,5 +287,5 @@ async function processEmbeds(
 		content = content.replace(embed.match, () => tag);
 	}
 
-	return { content, attachments };
+	return content;
 }

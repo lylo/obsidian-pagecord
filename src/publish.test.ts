@@ -362,6 +362,63 @@ describe("publishPost blog fingerprint", () => {
 		expect(noticeMessages.messages).not.toContain("File not found: photo.webp");
 	});
 
+	it("ignores embeds inside inline code spans", async () => {
+		const content = 'Size an image with `![[photo.png|300]]` or `![A sunny day](beach.jpg "Brighton")`.';
+		const app = createApp({}, content);
+		const createPost = vi.spyOn(PagecordAPI.prototype, "createPost").mockResolvedValue({
+			token: "new-token",
+			title: "Hello",
+			slug: "hello",
+			status: "published",
+		});
+		const uploadAttachment = vi.spyOn(PagecordAPI.prototype, "uploadAttachment");
+
+		await publishPost(app, BLOG, "published");
+
+		expect(uploadAttachment).not.toHaveBeenCalled();
+		expect(createPost).toHaveBeenCalledWith(expect.objectContaining({ content }));
+	});
+
+	it("ignores embeds inside fenced code blocks", async () => {
+		const content = "An embed looks like this:\n\n```\n![[photo.png]]\n```\n";
+		const app = createApp({}, content);
+		const createPost = vi.spyOn(PagecordAPI.prototype, "createPost").mockResolvedValue({
+			token: "new-token",
+			title: "Hello",
+			slug: "hello",
+			status: "published",
+		});
+		const uploadAttachment = vi.spyOn(PagecordAPI.prototype, "uploadAttachment");
+
+		await publishPost(app, BLOG, "published");
+
+		expect(uploadAttachment).not.toHaveBeenCalled();
+		expect(createPost).toHaveBeenCalledWith(expect.objectContaining({ content }));
+	});
+
+	it("replaces a real embed but not a code-span mention of the same file", async () => {
+		const app = createApp({}, "Type `![[photo.png]]` to embed:\n\n![[photo.png]]", {
+			extension: "png",
+			path: "photo.png",
+			name: "photo.png",
+		});
+		const createPost = vi.spyOn(PagecordAPI.prototype, "createPost").mockResolvedValue({
+			token: "new-token",
+			title: "Hello",
+			slug: "hello",
+			status: "published",
+		});
+		const uploadAttachment = vi.spyOn(PagecordAPI.prototype, "uploadAttachment")
+			.mockResolvedValue({ attachable_sgid: "sgid-1" });
+
+		await publishPost(app, BLOG, "published");
+
+		expect(uploadAttachment).toHaveBeenCalledTimes(1);
+		expect(createPost).toHaveBeenCalledWith(expect.objectContaining({
+			content: 'Type `![[photo.png]]` to embed:\n\n<action-text-attachment sgid="sgid-1"></action-text-attachment>',
+		}));
+	});
+
 	it("uploads an embedded PDF and replaces it with an attachment tag", async () => {
 		const frontmatter: Record<string, unknown> = {};
 		const app = createApp(frontmatter, "How does this render?\n\n![[sample.pdf]]", {

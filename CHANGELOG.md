@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.1
+
+- Fixed embed syntax inside code blocks and inline code spans being treated as real attachments. Publishing no longer fails with "File not found" when a note merely shows what an embed looks like, and a code sample naming a real file is no longer replaced by an upload.
+
 ## 1.3.0
 
 - Settings now use Obsidian's declarative settings API, so blog connections are found by Obsidian's settings search.
