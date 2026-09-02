@@ -73,6 +73,20 @@ describe("normalizeSettings", () => {
 			{ name: "Local", apiKey: "key-2", baseUrl },
 		]);
 	});
+
+	it("keeps a per-blog siteUrl", () => {
+		const settings = normalizeSettings({
+			blogs: [
+				{ name: "Personal", apiKey: "key-1" },
+				{ name: "Local", apiKey: "key-2", siteUrl: "https://myblog.pagecord.com" },
+			],
+		});
+
+		expect(settings.blogs).toEqual([
+			{ name: "Personal", apiKey: "key-1" },
+			{ name: "Local", apiKey: "key-2", siteUrl: "https://myblog.pagecord.com" },
+		]);
+	});
 });
 
 describe("getConfiguredBlogs", () => {
@@ -99,5 +113,15 @@ describe("getConfiguredBlogs", () => {
 		});
 
 		expect(blogs).toEqual([{ index: 0, blog: { name: "Local", apiKey: "key-1", baseUrl } }]);
+	});
+
+	it("carries a per-blog siteUrl through to the publish command", () => {
+		const blogs = getConfiguredBlogs({
+			blogs: [{ name: "Local", apiKey: "key-1", siteUrl: "https://myblog.pagecord.com" }],
+		});
+
+		expect(blogs).toEqual([
+			{ index: 0, blog: { name: "Local", apiKey: "key-1", siteUrl: "https://myblog.pagecord.com" } },
+		]);
 	});
 });

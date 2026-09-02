@@ -14,6 +14,10 @@ const REMOTE_URL = /^(?:https?:)?\/\//i;
 // syntax, not an attachment. Splitting on this (capturing, so the code
 // survives the join) confines embed scanning to the segments between code.
 const CODE = /(```[\s\S]*?```|`[^`\n]*`)/;
+// A draft is not on the blog yet, so its only working link is the post's page
+// in the Pagecord app, addressed by token rather than slug. The route is not
+// part of the documented API — it is what the app serves.
+const APP_POST_URL = "https://pagecord.com/app/posts";
 
 const CONTENT_TYPES: Record<string, string> = {
 	jpg: "image/jpeg",
@@ -34,6 +38,7 @@ interface PagecordFrontmatter {
 	canonical_url?: unknown;
 	pagecord_token?: unknown;
 	pagecord_blog_fingerprint?: unknown;
+	pagecord_url?: unknown;
 	published_at?: unknown;
 	hidden?: unknown;
 	locale?: unknown;
@@ -54,6 +59,20 @@ export async function hashArrayBuffer(data: ArrayBuffer): Promise<string> {
 
 export async function blogFingerprint(apiKey: string): Promise<string> {
 	return (await sha256Hex(new TextEncoder().encode(apiKey))).slice(0, 12);
+}
+
+export function postUrl(
+	status: "published" | "draft",
+	siteUrl: string | undefined,
+	slug: string | undefined,
+	token: string | undefined,
+): string | undefined {
+	if (status === "draft") return token ? `${APP_POST_URL}/${token}` : undefined;
+
+	const site = siteUrl?.trim().replace(/\/+$/, "");
+	if (!site || !slug) return undefined;
+	const origin = /^https?:\/\//i.test(site) ? site : `https://${site}`;
+	return `${origin}/${slug}`;
 }
 
 function unquoteFrontmatterString(value: string): string {
@@ -167,12 +186,15 @@ export async function publishPost(app: App, blog: PagecordBlogSettings, status: 
 	try {
 		let token = pagecordToken;
 		const isUpdate = Boolean(pagecordToken);
+		let publishedSlug: string | undefined;
 
 		if (pagecordToken) {
-			await api.updatePost(pagecordToken, params);
+			const post = await api.updatePost(pagecordToken, params);
+			publishedSlug = post.slug;
 		} else {
 			const post = await api.createPost(params);
 			token = post.token;
+			publishedSlug = post.slug;
 		}
 		new Notice(publishNoticeMessage(blogName, status, isUpdate, previousStatus));
 		await app.fileManager.processFrontMatter(file, (fm: Record<string, unknown>) => {
@@ -185,6 +207,11 @@ export async function publishPost(app: App, blog: PagecordBlogSettings, status: 
 			} else {
 				delete fm.pagecord_attachments;
 			}
+
+			// Leave a previously written pagecord_url untouched when nothing can
+			// be built — e.g. a published post with no siteUrl configured.
+			const url = postUrl(status, blog.siteUrl, publishedSlug, token);
+			if (url) fm.pagecord_url = url;
 		});
 	} catch (error: unknown) {
 		if (error instanceof ApiError && error.status === 404 && pagecordToken && pagecordBlogFingerprint) {

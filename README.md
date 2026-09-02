@@ -26,6 +26,10 @@ In Obsidian, go to **Settings → Community Plugins → Browse** and search for 
 4. Under **Pagecord Blog Connections**, click the **+** icon
 5. Enter a blog name and API key, then click **Save**
 
+Optionally set **Blog address** to your blog's public address, e.g. `https://myblog.pagecord.com`. A trailing slash or a missing `https://` are both fine. When set, the plugin writes a published post's URL back into your frontmatter as `pagecord_url` after publishing. A draft gets the post's page in the Pagecord app instead, addressed by token, which needs no blog address.
+
+Pagecord supports a few post URL formats (see help.pagecord.com/post-urls). The plugin builds `<blog address>/<slug>`, which matches the default format. If your blog uses the `/blog/my-post` format, include the prefix in Blog address, e.g. `https://myblog.pagecord.com/blog`. The dated format (`/2026/08/23/my-post`) isn't supported.
+
 Click a connection to update it, or use the delete control beside it to remove it. Deleting a connection only removes it from Obsidian settings; it does not delete the Pagecord blog.
 
 ## Commands
@@ -71,6 +75,7 @@ After publishing, the plugin adds metadata to your frontmatter automatically:
 - `pagecord_blog_fingerprint` – links the note to the configured Pagecord blog used for publishing. It does not contain your API key
 - `pagecord_attachments` – records each uploaded file against its vault path, so unchanged files aren't uploaded again
 - `status` – records the last status used by the publish command
+- `pagecord_url` – the post's URL. For a published post, this is the public URL, built from the connection's blog address and the slug Pagecord returns, and needs a blog address configured; an already-written value is left alone otherwise. For a draft, it's the post's page in the Pagecord app instead, since a draft isn't on the blog yet; this needs no blog address. Publishing as a draft over a previously published post replaces the public URL with the app URL, so the note is never left with a dead link
 
 These fields are managed by the plugin. Deleting `pagecord_token` will cause the next publish to create a new post. Existing notes published before multi-blog support still work; the plugin adds `pagecord_blog_fingerprint` after the next successful update.
 
