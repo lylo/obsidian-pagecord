@@ -69,6 +69,10 @@ class PagecordSettingTab extends PluginSettingTab {
 	getSettingDefinitions(): SettingDefinitionItem[] {
 		return [
 			{
+				name: "Documentation",
+				desc: documentationDescription(),
+			},
+			{
 				type: "list",
 				heading: "Blog connections",
 				emptyState: "No blog connections have been added. Add a connection to publish notes to Pagecord.",
@@ -134,6 +138,7 @@ class PagecordSettingTab extends PluginSettingTab {
 class BlogConnectionModal extends Modal {
 	private name = "";
 	private apiKey = "";
+	private siteUrl = "";
 	private saveButton: ButtonComponent | null = null;
 
 	constructor(
@@ -144,6 +149,7 @@ class BlogConnectionModal extends Modal {
 		super(app);
 		this.name = blog.name;
 		this.apiKey = blog.apiKey;
+		this.siteUrl = blog.siteUrl ?? "";
 	}
 
 	onOpen() {
@@ -177,6 +183,18 @@ class BlogConnectionModal extends Modal {
 			);
 
 		new Setting(this.contentEl)
+			.setName("Blog address")
+			.setDesc("Public address of your blog. Used to write the post's URL back into the note. Optional.")
+			.addText((text) =>
+				text
+					.setPlaceholder("https://myblog.pagecord.com")
+					.setValue(this.siteUrl)
+					.onChange((value) => {
+						this.siteUrl = value;
+					})
+			);
+
+		new Setting(this.contentEl)
 			.addButton((button) =>
 				button
 					.setButtonText("Cancel")
@@ -193,11 +211,19 @@ class BlogConnectionModal extends Modal {
 					.onClick(async () => {
 						if (!this.canSave()) return;
 						this.close();
-						await this.onSave({
+
+						const nextBlog: PagecordBlogSettings = {
 							...this.blog,
 							name: this.name.trim(),
 							apiKey: this.apiKey.trim(),
-						});
+						};
+						const siteUrl = this.siteUrl.trim();
+						if (siteUrl) {
+							nextBlog.siteUrl = siteUrl;
+						} else {
+							delete nextBlog.siteUrl;
+						}
+						await this.onSave(nextBlog);
 					})
 			);
 	}
@@ -248,6 +274,14 @@ class DeleteConnectionModal extends Modal {
 					})
 			);
 	}
+}
+
+function documentationDescription(): DocumentFragment {
+	return createFragment((fragment) => {
+		fragment.appendText("See frontmatter keys and the note template in the ");
+		fragment.createEl("a", { text: "Plugin documentation", href: "https://github.com/lylo/obsidian-pagecord" });
+		fragment.appendText(".");
+	});
 }
 
 function apiKeySuffixDescription(suffix: string): DocumentFragment {

@@ -7,6 +7,7 @@ import {
 	MARKDOWN_EMBED,
 	blogFingerprint,
 	hashArrayBuffer,
+	postUrl,
 	publishPost,
 	resolveTitle,
 } from "./publish";
@@ -164,6 +165,46 @@ describe("blogFingerprint", () => {
 
 	it("returns different fingerprints for different keys", async () => {
 		expect(await blogFingerprint("key-1")).not.toBe(await blogFingerprint("key-2"));
+	});
+});
+
+describe("postUrl", () => {
+	it("joins the site and slug when published", () => {
+		expect(postUrl("published", "https://myblog.pagecord.com", "hello", "tok")).toBe(
+			"https://myblog.pagecord.com/hello",
+		);
+	});
+
+	it("strips a trailing slash from the site", () => {
+		expect(postUrl("published", "https://myblog.pagecord.com/", "hello", "tok")).toBe(
+			"https://myblog.pagecord.com/hello",
+		);
+	});
+
+	it("adds https when the site has no scheme", () => {
+		expect(postUrl("published", "myblog.pagecord.com", "hello", "tok")).toBe(
+			"https://myblog.pagecord.com/hello",
+		);
+	});
+
+	it("returns undefined when published with no site", () => {
+		expect(postUrl("published", "", "hello", "tok")).toBeUndefined();
+		expect(postUrl("published", undefined, "hello", "tok")).toBeUndefined();
+	});
+
+	it("returns undefined when published with no slug", () => {
+		expect(postUrl("published", "https://myblog.pagecord.com", undefined, "tok")).toBeUndefined();
+	});
+
+	it("builds the app URL from the token when draft, regardless of site", () => {
+		expect(postUrl("draft", undefined, undefined, "tok")).toBe("https://pagecord.com/app/posts/tok");
+		expect(postUrl("draft", "https://myblog.pagecord.com", "hello", "tok")).toBe(
+			"https://pagecord.com/app/posts/tok",
+		);
+	});
+
+	it("returns undefined when draft with no token", () => {
+		expect(postUrl("draft", "https://myblog.pagecord.com", "hello", undefined)).toBeUndefined();
 	});
 });
 
@@ -340,6 +381,121 @@ describe("publishPost blog fingerprint", () => {
 		expect(frontmatter.pagecord_blog_fingerprint).toBe(await blogFingerprint(BLOG.apiKey));
 		expect(frontmatter.status).toBe("published");
 		expect(noticeMessages.messages).toContain("Published to Personal");
+	});
+
+	it("writes pagecord_url from the create response slug when published with a siteUrl", async () => {
+		const frontmatter: Record<string, unknown> = {};
+		const app = createApp(frontmatter);
+		const blog = { ...BLOG, siteUrl: "https://myblog.pagecord.com" };
+		vi.spyOn(PagecordAPI.prototype, "createPost").mockResolvedValue({
+			token: "new-token",
+			title: "Hello",
+			slug: "hello",
+			status: "published",
+		});
+
+		await publishPost(app, blog, "published");
+
+		expect(frontmatter.pagecord_url).toBe("https://myblog.pagecord.com/hello");
+	});
+
+	it("writes pagecord_url from the update response slug, not the note's old slug", async () => {
+		const frontmatter: Record<string, unknown> = { pagecord_token: "old-token", slug: "old-slug" };
+		const app = createApp(frontmatter);
+		const blog = { ...BLOG, siteUrl: "https://myblog.pagecord.com" };
+		vi.spyOn(PagecordAPI.prototype, "updatePost").mockResolvedValue({
+			token: "old-token",
+			title: "Hello",
+			slug: "new-slug",
+			status: "published",
+		});
+
+		await publishPost(app, blog, "published");
+
+		expect(frontmatter.pagecord_url).toBe("https://myblog.pagecord.com/new-slug");
+	});
+
+	it("does not write pagecord_url when published with no siteUrl", async () => {
+		const frontmatter: Record<string, unknown> = {};
+		const app = createApp(frontmatter);
+		vi.spyOn(PagecordAPI.prototype, "createPost").mockResolvedValue({
+			token: "new-token",
+			title: "Hello",
+			slug: "hello",
+			status: "published",
+		});
+
+		await publishPost(app, BLOG, "published");
+
+		expect(frontmatter.pagecord_url).toBeUndefined();
+	});
+
+	it("leaves an existing pagecord_url intact when published with no siteUrl", async () => {
+		const frontmatter: Record<string, unknown> = {
+			pagecord_token: "old-token",
+			pagecord_url: "https://myblog.pagecord.com/old-slug",
+		};
+		const app = createApp(frontmatter);
+		vi.spyOn(PagecordAPI.prototype, "updatePost").mockResolvedValue({
+			token: "old-token",
+			title: "Hello",
+			slug: "new-slug",
+			status: "published",
+		});
+
+		await publishPost(app, BLOG, "published");
+
+		expect(frontmatter.pagecord_url).toBe("https://myblog.pagecord.com/old-slug");
+	});
+
+	it("writes the app URL when publishing a draft, even with no siteUrl", async () => {
+		const frontmatter: Record<string, unknown> = {};
+		const app = createApp(frontmatter);
+		vi.spyOn(PagecordAPI.prototype, "createPost").mockResolvedValue({
+			token: "new-token",
+			title: "Hello",
+			slug: "hello",
+			status: "draft",
+		});
+
+		await publishPost(app, BLOG, "draft");
+
+		expect(frontmatter.pagecord_url).toBe("https://pagecord.com/app/posts/new-token");
+	});
+
+	it("writes the app URL when updating a note that was already a draft", async () => {
+		const frontmatter: Record<string, unknown> = { pagecord_token: "old-token", status: "draft" };
+		const app = createApp(frontmatter);
+		vi.spyOn(PagecordAPI.prototype, "updatePost").mockResolvedValue({
+			token: "old-token",
+			title: "Hello",
+			slug: "hello",
+			status: "draft",
+		});
+
+		await publishPost(app, BLOG, "draft");
+
+		expect(frontmatter.pagecord_url).toBe("https://pagecord.com/app/posts/old-token");
+	});
+
+	it("replaces a public pagecord_url with the app URL when unpublishing to draft", async () => {
+		const frontmatter: Record<string, unknown> = {
+			pagecord_token: "old-token",
+			status: "published",
+			pagecord_url: "https://myblog.pagecord.com/old-slug",
+		};
+		const app = createApp(frontmatter);
+		const blog = { ...BLOG, siteUrl: "https://myblog.pagecord.com" };
+		vi.spyOn(PagecordAPI.prototype, "updatePost").mockResolvedValue({
+			token: "old-token",
+			title: "Hello",
+			slug: "old-slug",
+			status: "draft",
+		});
+
+		await publishPost(app, blog, "draft");
+
+		expect(frontmatter.pagecord_url).toBe("https://pagecord.com/app/posts/old-token");
 	});
 
 	it("leaves remote markdown images unchanged", async () => {

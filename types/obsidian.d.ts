@@ -90,7 +90,11 @@ export interface SettingDefinitionAction extends SettingDefinitionBase {
 	action: (el: HTMLElement, index: number) => void;
 }
 
-export type SettingDefinition = SettingDefinitionAction;
+export interface SettingDefinitionEmpty extends SettingDefinitionBase {
+	action?: never;
+}
+
+export type SettingDefinition = SettingDefinitionAction | SettingDefinitionEmpty;
 
 export interface SettingDefinitionAddItem {
 	name: string;
@@ -155,6 +159,7 @@ export class Setting {
 interface DomElementInfo {
 	text?: string;
 	cls?: string;
+	href?: string;
 }
 
 declare global {

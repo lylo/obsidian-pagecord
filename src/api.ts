@@ -22,6 +22,7 @@ export interface PagecordAPISettings {
 
 export interface PagecordBlogSettings extends PagecordAPISettings {
 	name: string;
+	siteUrl?: string;
 }
 
 export interface ConfiguredBlog {
@@ -113,6 +114,7 @@ export function normalizeSettings(data: Partial<PagecordSettings> | null): Pagec
 			name: typeof blog.name === "string" ? blog.name : "",
 			apiKey: typeof blog.apiKey === "string" ? blog.apiKey : "",
 			...(typeof blog.baseUrl === "string" && { baseUrl: blog.baseUrl }),
+			...(typeof blog.siteUrl === "string" && { siteUrl: blog.siteUrl }),
 		}))
 		: [];
 
@@ -133,7 +135,15 @@ export function getConfiguredBlogs(settings: PagecordSettings): ConfiguredBlog[]
 
 		if (!name || !apiKey) return [];
 
-		return [{ index, blog: { name, apiKey, ...(blog.baseUrl && { baseUrl: blog.baseUrl }) } }];
+		return [{
+			index,
+			blog: {
+				name,
+				apiKey,
+				...(blog.baseUrl && { baseUrl: blog.baseUrl }),
+				...(blog.siteUrl && { siteUrl: blog.siteUrl }),
+			},
+		}];
 	});
 }
 
