@@ -69,6 +69,10 @@ class PagecordSettingTab extends PluginSettingTab {
 	getSettingDefinitions(): SettingDefinitionItem[] {
 		return [
 			{
+				name: "Documentation",
+				desc: documentationDescription(),
+			},
+			{
 				type: "list",
 				heading: "Blog connections",
 				emptyState: "No blog connections have been added. Add a connection to publish notes to Pagecord.",
@@ -270,6 +274,14 @@ class DeleteConnectionModal extends Modal {
 					})
 			);
 	}
+}
+
+function documentationDescription(): DocumentFragment {
+	return createFragment((fragment) => {
+		fragment.appendText("See frontmatter keys and the note template in the ");
+		fragment.createEl("a", { text: "Plugin documentation", href: "https://github.com/lylo/obsidian-pagecord" });
+		fragment.appendText(".");
+	});
 }
 
 function apiKeySuffixDescription(suffix: string): DocumentFragment {
