@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.2
+
+- Added `open_graph_image` front matter. Set `open_graph_image: text` to always use the text-based social sharing card, even when the post has images.
+
 ## 1.3.1
 
 - Fixed embed syntax inside code blocks and inline code spans being treated as real attachments. Publishing no longer fails with "File not found" when a note merely shows what an embed looks like, and a code sample naming a real file is no longer replaced by an upload.
