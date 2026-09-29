@@ -62,6 +62,7 @@ locale: en
 | `canonical_url` | Canonical URL for the post |
 | `hidden` | `true` to hide from the feed |
 | `locale` | Post language code |
+| `open_graph_image` | `text` to always use the text-based social sharing card, even when the post has images |
 
 All fields are optional. You do not need frontmatter for the basics: the plugin uses the note filename as the default title, Pagecord generates the slug if you omit one, and the command you run chooses whether the post is published or saved as a draft. Add `tags` explicitly if you want tags on the post, and use the other fields only when you want to change the defaults.
 
