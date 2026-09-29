@@ -37,6 +37,7 @@ interface PagecordFrontmatter {
 	published_at?: unknown;
 	hidden?: unknown;
 	locale?: unknown;
+	open_graph_image?: unknown;
 	content_format?: unknown;
 	status?: unknown;
 	tags?: unknown;
@@ -114,6 +115,7 @@ export async function publishPost(app: App, blog: PagecordBlogSettings, status: 
 	const publishedAt = frontmatterString(frontmatter.published_at);
 	const hidden = frontmatterBoolean(frontmatter.hidden);
 	const locale = frontmatterString(frontmatter.locale);
+	const openGraphImage = frontmatterString(frontmatter.open_graph_image);
 	const contentFormat = frontmatterString(frontmatter.content_format) === "html" ? "html" as const : "markdown" as const;
 	const frontmatterStatus = frontmatterString(frontmatter.status);
 	const previousStatus = frontmatterStatus === "published" || frontmatterStatus === "draft"
@@ -162,6 +164,7 @@ export async function publishPost(app: App, blog: PagecordBlogSettings, status: 
 		...(publishedAt && { published_at: publishedAt }),
 		...(hidden != null && { hidden }),
 		...(locale && { locale }),
+		...(openGraphImage && { open_graph_image: openGraphImage }),
 	};
 
 	try {

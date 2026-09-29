@@ -40,6 +40,7 @@ interface PostParams {
 	published_at?: string;
 	hidden?: boolean;
 	locale?: string;
+	open_graph_image?: string;
 }
 
 interface PostResponse {
