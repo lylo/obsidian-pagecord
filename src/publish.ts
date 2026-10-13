@@ -32,6 +32,7 @@ interface PagecordFrontmatter {
 	title?: unknown;
 	slug?: unknown;
 	canonical_url?: unknown;
+	link_url?: unknown;
 	pagecord_token?: unknown;
 	pagecord_blog_fingerprint?: unknown;
 	published_at?: unknown;
@@ -110,6 +111,7 @@ export async function publishPost(app: App, blog: PagecordBlogSettings, status: 
 	const title = resolveTitle(frontmatter.title, file.basename);
 	const slug = frontmatterString(frontmatter.slug);
 	const canonicalUrl = frontmatterString(frontmatter.canonical_url);
+	const linkUrl = frontmatterString(frontmatter.link_url);
 	const pagecordToken = frontmatterString(frontmatter.pagecord_token);
 	const pagecordBlogFingerprint = frontmatterString(frontmatter.pagecord_blog_fingerprint);
 	const publishedAt = frontmatterString(frontmatter.published_at);
@@ -161,6 +163,7 @@ export async function publishPost(app: App, blog: PagecordBlogSettings, status: 
 		...(slug && { slug }),
 		...(tags && { tags }),
 		...(canonicalUrl && { canonical_url: canonicalUrl }),
+		...(linkUrl && { link_url: linkUrl }),
 		...(publishedAt && { published_at: publishedAt }),
 		...(hidden != null && { hidden }),
 		...(locale && { locale }),

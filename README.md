@@ -60,6 +60,7 @@ locale: en
 | `tags` | Array or comma-separated string |
 | `published_at` | ISO 8601 timestamp |
 | `canonical_url` | Canonical URL for the post |
+| `link_url` | Makes it a link post: the title links to this address |
 | `hidden` | `true` to hide from the feed |
 | `locale` | Post language code |
 | `open_graph_image` | `text` to always use the text-based social sharing card, even when the post has images |

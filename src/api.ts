@@ -35,6 +35,7 @@ interface PostParams {
 	slug?: string;
 	tags?: string;
 	canonical_url?: string;
+	link_url?: string;
 	status: "published" | "draft";
 	content_format: "markdown" | "html";
 	published_at?: string;

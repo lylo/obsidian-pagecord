@@ -292,6 +292,20 @@ describe("publishPost blog fingerprint", () => {
 		expect(noticeMessages.messages).toContain("Unpublished from Personal");
 	});
 
+	it("sends link_url", async () => {
+		const app = createApp({ link_url: "https://example.com/article" });
+		const createPost = vi.spyOn(PagecordAPI.prototype, "createPost").mockResolvedValue({
+			token: "new-token",
+			title: "Hello",
+			slug: "hello",
+			status: "published",
+		});
+
+		await publishPost(app, BLOG, "published");
+
+		expect(createPost).toHaveBeenCalledWith(expect.objectContaining({ link_url: "https://example.com/article" }));
+	});
+
 	it("sends open_graph_image", async () => {
 		const app = createApp({ open_graph_image: "text" });
 		const createPost = vi.spyOn(PagecordAPI.prototype, "createPost").mockResolvedValue({
