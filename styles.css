@@ -1,4 +1,4 @@
-.notice-message:has(> .pagecord-copy-link) {
+.pagecord-copy-link-notice {
 	display: flex;
 	align-items: center;
 }

@@ -169,6 +169,7 @@ declare global {
 	}
 
 	interface HTMLElement {
+		addClass(...classes: string[]): void;
 		createEl<K extends keyof HTMLElementTagNameMap>(tag: K, info?: DomElementInfo | string): HTMLElementTagNameMap[K];
 		empty(): void;
 	}

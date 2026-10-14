@@ -212,6 +212,7 @@ function publishNoticeMessage(
 }
 
 function addCopyLinkButton(notice: Notice, url: string): void {
+	notice.messageEl.addClass("pagecord-copy-link-notice");
 	const button = notice.messageEl.createEl("button", { cls: "pagecord-copy-link", attr: { "aria-label": "Copy link" } });
 	setIcon(button, "copy");
 	button.addEventListener("click", (event) => {
