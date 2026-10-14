@@ -2,6 +2,8 @@ class FakeElement {
 	children: FakeElement[] = [];
 	private listeners: Record<string, (event: { stopPropagation: () => void }) => void> = {};
 
+	addClass(): void {}
+
 	createEl(): FakeElement {
 		const child = new FakeElement();
 		this.children.push(child);
