@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.4
+
+- Added a copy button to the notice shown after publishing. Click it to copy the post's address on your blog. Drafts and scheduled posts don't have one, since they aren't live yet.
+
 ## 1.3.3
 
 - Added `link_url` front matter, which makes the post a link post: its title links to that address. Removing the field from a note doesn't clear it on the post; clear Link URL in the Pagecord editor instead.
