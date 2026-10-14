@@ -26,7 +26,9 @@ export interface RequestUrlResponse {
 export function requestUrl(request: RequestUrlParam): Promise<RequestUrlResponse>;
 
 export class Notice {
+	messageEl: HTMLElement;
 	constructor(message: string | DocumentFragment, duration?: number);
+	setMessage(message: string | DocumentFragment): this;
 }
 
 export class TFile {
@@ -152,9 +154,12 @@ export class Setting {
 	addButton(callback: (button: ButtonComponent) => unknown): this;
 }
 
+export function setIcon(parent: HTMLElement, iconId: string): void;
+
 interface DomElementInfo {
 	text?: string;
 	cls?: string;
+	attr?: Record<string, string>;
 }
 
 declare global {

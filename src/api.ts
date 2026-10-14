@@ -49,6 +49,7 @@ interface PostResponse {
 	title: string;
 	slug: string;
 	status: string;
+	url: string | null;
 }
 
 interface AttachmentResponse {

@@ -35,6 +35,8 @@ Open the command palette (`Cmd/Ctrl + P`) and run:
 - **Publish to Blog Name** – creates or updates the post as published
 - **Publish to Blog Name (draft)** – creates or updates the post as a draft
 
+Once a post is published, the notice has a copy button for its address on your blog.
+
 Commands are only available when a markdown file is active. One pair of commands is shown for each saved blog connection.
 
 ## Frontmatter
@@ -100,7 +102,7 @@ npm install
 npm run build
 ```
 
-Copy `main.js` and `manifest.json` to your vault's `.obsidian/plugins/pagecord/` directory.
+Copy `main.js`, `manifest.json` and `styles.css` to your vault's `.obsidian/plugins/pagecord/` directory.
 
 ## Local Development
 

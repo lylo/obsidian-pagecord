@@ -39,11 +39,16 @@ function createApp(
 }
 
 const BLOG: PagecordBlogSettings = { name: "Personal", apiKey: "key-1" };
-const noticeMessages = Notice as unknown as { messages: string[] };
+const noticeMessages = Notice as unknown as {
+	messages: string[];
+	instances: { messageEl: { children: { click: () => void }[] } }[];
+};
 
 afterEach(() => {
 	vi.restoreAllMocks();
+	vi.unstubAllGlobals();
 	noticeMessages.messages = [];
+	noticeMessages.instances = [];
 });
 
 describe("ATTACHMENT_EXTENSIONS", () => {
@@ -368,6 +373,42 @@ describe("publishPost blog fingerprint", () => {
 		expect(frontmatter.pagecord_blog_fingerprint).toBe(await blogFingerprint(BLOG.apiKey));
 		expect(frontmatter.status).toBe("published");
 		expect(noticeMessages.messages).toContain("Published to Personal");
+	});
+
+	it("offers to copy the post's URL when publishing", async () => {
+		const app = createApp({});
+		const writeText = vi.fn().mockResolvedValue(undefined);
+		vi.stubGlobal("navigator", { clipboard: { writeText } });
+		vi.spyOn(PagecordAPI.prototype, "createPost").mockResolvedValue({
+			token: "new-token",
+			title: "Hello",
+			slug: "hello",
+			status: "published",
+			url: "https://myblog.pagecord.com/hello",
+		});
+
+		await publishPost(app, BLOG, "published");
+		expect(writeText).not.toHaveBeenCalled();
+
+		noticeMessages.instances[0].messageEl.children[0].click();
+		await vi.waitFor(() => expect(noticeMessages.messages).toEqual(["Published to Personal", "Link copied"]));
+		expect(writeText).toHaveBeenCalledWith("https://myblog.pagecord.com/hello");
+	});
+
+	it("has no link to copy when unpublishing", async () => {
+		const app = createApp({ pagecord_token: "old-token", status: "published" });
+		vi.spyOn(PagecordAPI.prototype, "updatePost").mockResolvedValue({
+			token: "old-token",
+			title: "Hello",
+			slug: "hello",
+			status: "draft",
+			url: null,
+		});
+
+		await publishPost(app, BLOG, "draft");
+
+		expect(noticeMessages.messages).toEqual(["Unpublished from Personal"]);
+		expect(noticeMessages.instances[0].messageEl.children).toEqual([]);
 	});
 
 	it("leaves remote markdown images unchanged", async () => {

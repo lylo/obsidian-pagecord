@@ -1,0 +1,28 @@
+.notice-message:has(> .pagecord-copy-link) {
+	display: flex;
+	align-items: center;
+}
+
+.notice button.pagecord-copy-link {
+	display: inline-flex;
+	flex-shrink: 0;
+	margin-inline-start: var(--size-4-2);
+	padding: var(--size-2-1);
+	height: auto;
+	background: none;
+	border: none;
+	box-shadow: none;
+	color: inherit;
+	opacity: 0.75;
+	cursor: pointer;
+}
+
+.notice button.pagecord-copy-link:hover {
+	background: color-mix(in srgb, currentColor 15%, transparent);
+	opacity: 1;
+}
+
+.notice button.pagecord-copy-link svg {
+	width: var(--icon-s);
+	height: var(--icon-s);
+}

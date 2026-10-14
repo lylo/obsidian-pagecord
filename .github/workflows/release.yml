@@ -29,6 +29,7 @@ jobs:
           subject-path: |
             main.js
             manifest.json
+            styles.css
 
       - uses: softprops/action-gh-release@v2
         with:
@@ -36,3 +37,4 @@ jobs:
           files: |
             main.js
             manifest.json
+            styles.css
