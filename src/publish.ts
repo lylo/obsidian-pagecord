@@ -1,4 +1,4 @@
-import { App, TFile, Notice } from "obsidian";
+import { App, TFile, Notice, setIcon } from "obsidian";
 import { PagecordAPI, PagecordBlogSettings, ApiError, handleApiError } from "./api";
 
 class UploadError extends Error {}
@@ -171,18 +171,12 @@ export async function publishPost(app: App, blog: PagecordBlogSettings, status: 
 	};
 
 	try {
-		let token = pagecordToken;
 		const isUpdate = Boolean(pagecordToken);
-
-		if (pagecordToken) {
-			await api.updatePost(pagecordToken, params);
-		} else {
-			const post = await api.createPost(params);
-			token = post.token;
-		}
-		new Notice(publishNoticeMessage(blogName, status, isUpdate, previousStatus));
+		const post = pagecordToken ? await api.updatePost(pagecordToken, params) : await api.createPost(params);
+		const notice = new Notice(publishNoticeMessage(blogName, status, isUpdate, previousStatus));
+		if (post.url) addCopyLinkButton(notice, post.url);
 		await app.fileManager.processFrontMatter(file, (fm: Record<string, unknown>) => {
-			fm.pagecord_token = token;
+			fm.pagecord_token = post.token;
 			fm.pagecord_blog_fingerprint = fingerprint;
 			fm.status = status;
 
@@ -215,6 +209,18 @@ function publishNoticeMessage(
 	}
 
 	return previousStatus === "draft" ? `Published to ${blogName}` : `Updated post on ${blogName}`;
+}
+
+function addCopyLinkButton(notice: Notice, url: string): void {
+	const button = notice.messageEl.createEl("button", { cls: "pagecord-copy-link", attr: { "aria-label": "Copy link" } });
+	setIcon(button, "copy");
+	button.addEventListener("click", (event) => {
+		event.stopPropagation();
+		void navigator.clipboard.writeText(url).then(
+			() => notice.setMessage("Link copied"),
+			() => notice.setMessage("Couldn't copy link"),
+		);
+	});
 }
 
 function escapeAttribute(value: string): string {
