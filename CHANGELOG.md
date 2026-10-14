@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.3
+
+- Added `link_url` front matter, which makes the post a link post: its title links to that address. Removing the field from a note doesn't clear it on the post; clear Link URL in the Pagecord editor instead.
+
 ## 1.3.2
 
 - Added `open_graph_image` front matter. Set `open_graph_image: text` to always use the text-based social sharing card, even when the post has images.
