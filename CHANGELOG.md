@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.5
+
+- The copy button in the publish notice is now aligned without the CSS `:has` selector, which Obsidian's plugin review flags for performance.
+
 ## 1.3.4
 
 - Added a copy button to the notice shown after publishing. Click it to copy the post's address on your blog. Drafts and scheduled posts don't have one, since they aren't live yet.
