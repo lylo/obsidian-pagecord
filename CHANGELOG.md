@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.6
+
+- Embedded audio (MP3, WAV) and video (MP4, MOV) are now uploaded to Pagecord, not left in the post as text. Video needs a paid Pagecord plan.
+
 ## 1.3.5
 
 - The copy button in the publish notice is now aligned without the CSS `:has` selector, which Obsidian's plugin review flags for performance.
