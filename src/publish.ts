@@ -3,7 +3,7 @@ import { PagecordAPI, PagecordBlogSettings, ApiError, handleApiError } from "./a
 
 class UploadError extends Error {}
 
-export const ATTACHMENT_EXTENSIONS = /\.(jpe?g|png|gif|webp|pdf)$/i;
+export const ATTACHMENT_EXTENSIONS = /\.(jpe?g|png|gif|webp|pdf|mp3|wav|mp4|mov)$/i;
 export const WIKILINK_EMBED = /!\[\[([^\]]+?)\]\]/g;
 // ![alt](photo.jpg "A caption") — the alt describes the image, the optional
 // title captions it. A path containing parens is not matched; use a wikilink,
@@ -22,6 +22,10 @@ const CONTENT_TYPES: Record<string, string> = {
 	gif: "image/gif",
 	webp: "image/webp",
 	pdf: "application/pdf",
+	mp3: "audio/mpeg",
+	wav: "audio/wav",
+	mp4: "video/mp4",
+	mov: "video/quicktime",
 };
 
 interface AttachmentCache {

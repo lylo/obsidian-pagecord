@@ -52,12 +52,12 @@ afterEach(() => {
 });
 
 describe("ATTACHMENT_EXTENSIONS", () => {
-	it.each(["photo.jpg", "photo.jpeg", "photo.JPG", "image.png", "anim.gif", "pic.webp", "report.pdf", "REPORT.PDF"])(
+	it.each(["photo.jpg", "photo.jpeg", "photo.JPG", "image.png", "anim.gif", "pic.webp", "report.pdf", "REPORT.PDF", "song.mp3", "memo.wav", "clip.mp4", "clip.MOV"])(
 		"matches %s",
 		(name) => expect(ATTACHMENT_EXTENSIONS.test(name)).toBe(true),
 	);
 
-	it.each(["doc.txt", "image.svg", "notes.pages", "photo.jpg.bak", "noext"])(
+	it.each(["doc.txt", "image.svg", "notes.pages", "photo.jpg.bak", "noext", "song.m4a", "track.flac"])(
 		"rejects %s",
 		(name) => expect(ATTACHMENT_EXTENSIONS.test(name)).toBe(false),
 	);

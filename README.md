@@ -4,13 +4,13 @@ Install Pagecord from the Obsidian community plugin directory: https://community
 
 Publish notes from Obsidian to your [Pagecord](https://pagecord.com) blog.
 
-Write in Obsidian, hit a command, done. Supports images, PDFs, frontmatter, and drafts.
+Write in Obsidian, hit a command, done. Supports images, PDFs, audio, video, frontmatter, and drafts.
 
 ## Features
 
 - Publish notes as blog posts or drafts
 - Update existing posts (tracks via frontmatter)
-- Upload embedded images and PDFs automatically
+- Upload embedded images, PDFs, audio and video automatically
 - Publish to multiple configured Pagecord blogs
 - Read title, slug, tags, and more from frontmatter
 
@@ -78,14 +78,14 @@ After publishing, the plugin adds metadata to your frontmatter automatically:
 
 These fields are managed by the plugin. Deleting `pagecord_token` will cause the next publish to create a new post. Existing notes published before multi-blog support still work; the plugin adds `pagecord_blog_fingerprint` after the next successful update.
 
-## Images and PDFs
+## Images, PDFs, audio and video
 
 For files you want Pagecord to host, drag the file into Obsidian or otherwise add it as a local file in your vault, then embed it in the note. Both Obsidian embed syntaxes are supported:
 
-- `![[photo.jpg]]`, `![[report.pdf]]` (wiki-style)
+- `![[photo.jpg]]`, `![[report.pdf]]`, `![[episode.mp3]]` (wiki-style)
 - `![](photo.jpg)`, `![](report.pdf)` (markdown-style)
 
-Vault-local files are uploaded to Pagecord and embedded in the post automatically. The plugin sends each file to the Pagecord attachments API, receives an `attachable_sgid`, and replaces the Markdown reference with the Action Text attachment tag Pagecord needs. PDFs are published as attachments showing a preview of the first page, a download link, and the file size.
+Vault-local files are uploaded to Pagecord and embedded in the post automatically. The plugin sends each file to the Pagecord attachments API, receives an `attachable_sgid`, and replaces the Markdown reference with the Action Text attachment tag Pagecord needs. PDFs are published as attachments showing a preview of the first page, a download link, and the file size. Audio (MP3 and WAV) gets Pagecord's audio player; video (MP4 and MOV) needs a paid plan.
 
 Obsidian's display modifiers are ignored, so `![[report.pdf#page=2]]` and `![[photo.png|300]]` upload the whole file and are rendered by Pagecord at its own size.
 
